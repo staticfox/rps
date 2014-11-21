@@ -1,0 +1,14 @@
+Add a command system to the 'bot' bot.
+Add a quote system to the 'bot' bot.
+
+
+Make socket documentation.
+Make module documentation.
+Make event documentation.
+
+----
+Make the TF2 bots work under RPS.
+
+
+----
+Any suggestions? Comments? Concerns? Email Ryan at Ryan@RKHTech.org.
