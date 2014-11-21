@@ -60,7 +60,7 @@ class ModuleServClient
 
 		config = c.Get
 		@parameters = config["connections"]["clients"]["irc"]["parameters"]
-		@client_sid = "#{@parameters["sid"]}000002"
+		@client_sid = "#{@parameters["sid"]}000001"
 		@initialized = false
 
 		@e.on_event do |type, name, sock|

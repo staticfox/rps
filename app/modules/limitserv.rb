@@ -255,7 +255,7 @@ class LimitServCore
 
 		@config = c.Get
 		@parameters = @config["connections"]["clients"]["irc"]["parameters"]
-		@client_sid = "#{@parameters["sid"]}000001"
+		@client_sid = "#{@parameters["sid"]}000002"
 		LimitServ_Channel.establish_connection(@config["connections"]["databases"]["test"])
 		LimitServ_Channel.connection.disconnect!
 		@channellist = []
