@@ -1,5 +1,8 @@
 require "mechanize"
 require "google-search"
+require "erb"
+
+include ERB::Util
 
 require_relative "../libs/irc"
 
@@ -12,14 +15,14 @@ class BotG
         end
 
 	def gc parameters
-		doc = Mechanize.new.get("http://www.google.com/search?q=#{parameters}")
+		doc = Mechanize.new.get("http://www.google.com/search?q=#{url_encode(parameters)}")
 		result = doc.search("//h2[@class='r']").inner_text
 		return "No Result Found." if result == ""
 		return result
 	end
 
 	def gs parameters
-		data = Google::Search::Web.new(:query => parameters)
+		data = Google::Search::Web.new(:query => url_encode(parameters))
 		array = []
 
 		data.each do |result|
