@@ -1,6 +1,8 @@
+require "wunderground"
+
 require_relative "../libs/irc"
 
-class BotClient
+class BotWeather
 
 	def send_data name, sock, string
                 time = Time.now
@@ -8,10 +10,41 @@ class BotClient
                 sock.send string, 0
         end
 
+	def run parameters
+		array = []
+		data = @w_api.conditions_for(parameters)
+		data = data["current_observation"]
+
+		if data.nil? then
+                        array.push("No data could be found.")
+                        return array
+                end
+
+		location = data["observation_location"]["full"]
+		lastupdated = data["observation_time"]
+		description = data["nowcast"]
+		wind = data["wind_string"]
+		weather = data["weather"]
+		temp = data["temperature_string"]
+		humidity = data["relative_humidity"]
+		dewpoint = data["dewpoint_string"]
+
+		array.push("#{lastupdated} - #{location} - Temp: #{temp} - Info: #{weather} - Winds: #{wind} - Humidity: #{humidity} - Dewpoint: #{dewpoint}")
+		array.push(description.gsub("\n", ' ')[1..-2])
+		return array
+	end
+
 	def handle_privmsg hash
 		target = hash["target"]
 		target = hash["from"] if hash["target"] == @client_sid
 		@irc.privmsg @client_sid, target, "This is only a test." if hash["command"].downcase == "!test"
+
+		if hash["command"].downcase == "!weather" then
+			run(hash["parameters"]).each do |line|
+				@irc.privmsg @client_sid, target, line
+			end
+		end
+
 	        #@irc.privmsg @client_sid, "Ryan", "#{hash['from']} is an oper." if @irc.is_oper_uid hash["from"]
 	end
 
@@ -20,6 +53,8 @@ class BotClient
                 @m = m
                 @c = c
                 @d = d
+
+		@w_api = Wunderground.new("d58c72fb57de4a46")
 
 		config = @c.Get
 		@parameters = config["connections"]["clients"]["irc"]["parameters"]
