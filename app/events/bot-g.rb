@@ -31,7 +31,6 @@ class BotG
 	end
 
 	def handle_privmsg hash
-		@e.Run "Bot-Chat", hash
 		target = hash["target"]
 		target = hash["from"] if hash["target"] == @client_sid
 		@irc.privmsg @client_sid, target, "This is only a test." if hash["command"] == "!test"
