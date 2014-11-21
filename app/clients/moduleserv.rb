@@ -25,7 +25,7 @@ class ModuleServClient
 		target = hash["from"] if hash["target"] == @client_sid
 		@irc.privmsg @client_sid, target, "Test" if hash["command"] == "!test"
 
-		@irc.privmsg @client_sid, target, "#{hash["from"]}: I see you're not away." if hash["command"] == "!notafk"
+		#@irc.privmsg @client_sid, target, "#{hash["from"]}: I see you're not away." if hash["command"] == "!notafk"
 	
 		if hash["command"] == "!module" and hash["target"] == "#debug" then
                         cp = hash["parameters"].split(' ')
