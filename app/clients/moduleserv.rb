@@ -28,7 +28,13 @@ class ModuleServClient
 		#@irc.privmsg @client_sid, target, "#{hash["from"]}: I see you're not away." if hash["command"] == "!notafk"
 	
 		if hash["command"] == "!module" and hash["target"] == "#debug" then
-                        cp = hash["parameters"].split(' ')
+                        cp = hash["parameters"].split(' ') if !hash["parameters"].nil?
+			
+			if cp.nil? then
+                                cp = []
+                                cp.push("")
+                        end
+
                         if cp[0] == "load"
                                 if !File.file?(cp[1]) || !cp[1].include?(".rb") then
                                         @irc.privmsg @client_sid, target, "[MODULE ERROR] Could not find file: #{cp[1]}"
