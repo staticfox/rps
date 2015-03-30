@@ -52,7 +52,7 @@ class LimitServCore
 		queries.each do |query|
 			@irc.client_join_channel @client_sid, query.Channel
 			@irc.client_set_mode @client_sid, "#{query.Channel} +o #{@client_sid}"
-			@irc.privmsg @client_sid, "#debug", "JOINED: #{query.Channel}"
+			@irc.privmsg @client_sid, "#rps-debug", "JOINED: #{query.Channel}"
 		end
 		LimitServ_Channel.connection.disconnect!
 	end
@@ -154,9 +154,9 @@ class LimitServCore
 					puts "Updated MySQL"
 					@irc.client_set_mode @client_sid, "#{query.Channel} +l #{newlimit}"
 					puts "Updated Channel Mode"
-					@irc.privmsg @client_sid, "#debug", "NEW LIMIT: #{query.Channel} - #{newlimit}, Old Limit - #{oldlimit}, Offset: #{calc}, Actual Count: #{currentcount}"
+					@irc.privmsg @client_sid, "#rps-debug", "NEW LIMIT: #{query.Channel} - #{newlimit}, Old Limit - #{oldlimit}, Offset: #{calc}, Actual Count: #{currentcount}"
 				end
-			end			
+			end
 		end
 		LimitServ_Channel.connection.disconnect!
 	end
@@ -173,6 +173,7 @@ class LimitServCore
 			@irc.notice @client_sid, target, "LIST                      List channels that LimitServ monitors." if @irc.is_oper_uid target
 			@irc.notice @client_sid, target, "REQUEST                   Request LimitServ to protect a channel from join floods."
 			@irc.notice @client_sid, target, "REMOVE                    Stop LimitServ from protecting a channel."
+			@irc.notice @client_sid, target, "NUKE                      Unsets all channel limits where LimitServ lives." if @irc.is_oper_uid target
 			@irc.notice @client_sid, target, "***** End of Help *****"
 			@irc.notice @client_sid, target, "If you're having trouble or you need additional help, you may want to join the help channel #help."
 		end
@@ -186,7 +187,26 @@ class LimitServCore
 			stats_channels.each do |line|
 				@irc.notice @client_sid, target, line
 			end
-		end			
+		end
+
+		if hash["command"].downcase == "nuke" then
+			if !@irc.is_oper_uid target then
+				@irc.notice @client_sid, target, "[ERROR] You must be an oper to use this command."
+                                return
+                        end
+
+            LimitServ_Channel.establish_connection(@config["connections"]["databases"]["test"])
+			queries = LimitServ_Channel.all
+			return if queries.count == 0
+			queries.each do |query|
+	            LimitServ_Channel.connection.execute("UPDATE `limit_serv_channels` SET `People` = '#{query.People}', `Time` = '#{Time.now.to_i}' WHERE `Channel` = '#{query.Channel}';")
+				puts "Updated MySQL"
+				@irc.client_set_mode @client_sid, "#{query.Channel} -l"
+				puts "Updated Channel Mode"
+				@irc.privmsg @client_sid, "#rps-debug", "[!NUKE!] - #{query.Channel}"
+
+			end
+		end
 
 
 		if hash["command"].downcase == "request" then
@@ -214,8 +234,8 @@ class LimitServCore
 			@irc.notice @client_sid, target, "[SUCCESS] #{hash["parameters"]} will now be monitored by LimitServ."
 			@irc.client_join_channel @client_sid, hash["parameters"]
 			@irc.client_set_mode @client_sid, "#{hash["parameters"]} +o #{@client_sid}"
-			@irc.privmsg @client_sid, "#debug", "REQUEST: #{hash["parameters"]} - (#{@irc.get_nick_from_uid(target)})" if @irc.is_chan_founder hash["parameters"], target
-			@irc.privmsg @client_sid, "#debug", "REQUEST: #{hash["parameters"]} - (#{@irc.get_nick_from_uid(target)}) [OPER Override]" if @irc.is_oper_uid target
+			@irc.privmsg @client_sid, "#rps-debug", "REQUEST: #{hash["parameters"]} - (#{@irc.get_nick_from_uid(target)})" if @irc.is_chan_founder hash["parameters"], target
+			@irc.privmsg @client_sid, "#rps-debug", "REQUEST: #{hash["parameters"]} - (#{@irc.get_nick_from_uid(target)}) [OPER Override]" if @irc.is_oper_uid target
 		end
 
 		if hash["command"].downcase == "remove" then
@@ -242,8 +262,8 @@ class LimitServCore
                         remove_channel hash["parameters"]
                         @irc.notice @client_sid, target, "[SUCCESS] #{hash["parameters"]} will not be monitored by LimitServ."
 			@irc.client_part_channel @client_sid, hash["parameters"]
-			@irc.privmsg @client_sid, "#debug", "REMOVED: #{hash["parameters"]} - (#{@irc.get_nick_from_uid(target)})" if @irc.is_chan_founder hash["parameters"], target
-			@irc.privmsg @client_sid, "#debug", "REMOVED: #{hash["parameters"]} - (#{@irc.get_nick_from_uid(target)}) [OPER Override]" if @irc.is_oper_uid target
+			@irc.privmsg @client_sid, "#rps-debug", "REMOVED: #{hash["parameters"]} - (#{@irc.get_nick_from_uid(target)})" if @irc.is_chan_founder hash["parameters"], target
+			@irc.privmsg @client_sid, "#rps-debug", "REMOVED: #{hash["parameters"]} - (#{@irc.get_nick_from_uid(target)}) [OPER Override]" if @irc.is_oper_uid target
 		end			
 	end
 

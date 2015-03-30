@@ -37,7 +37,7 @@ class BotWeather
 	def handle_privmsg hash
 		target = hash["target"]
 		target = hash["from"] if hash["target"] == @client_sid
-		@irc.privmsg @client_sid, target, "This is only a test." if hash["command"].downcase == "!test"
+		#@irc.privmsg @client_sid, target, "This is only a test." if hash["command"].downcase == "!test"
 
 		if hash["command"].downcase == "!weather" then
 			run(hash["parameters"]).each do |line|

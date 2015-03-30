@@ -15,7 +15,7 @@ class BotG
         end
 
 	def gc parameters
-		doc = Mechanize.new.get("http://www.google.com/search?q=#{url_encode(parameters)}")
+		doc = Mechanize.new.get("http://173.194.115.72/search?q=#{url_encode(parameters)}")
 		result = doc.search("//h2[@class='r']").inner_text
 		return "No Result Found." if result == ""
 		return result
@@ -36,7 +36,7 @@ class BotG
 	def handle_privmsg hash
 		target = hash["target"]
 		target = hash["from"] if hash["target"] == @client_sid
-		@irc.privmsg @client_sid, target, "This is only a test." if hash["command"].downcase == "!test"
+		#@irc.privmsg @client_sid, target, "This is only a test." if hash["command"].downcase == "!test"
 
 		@irc.privmsg @client_sid, target, "Google Calculator: #{gc(hash["parameters"])}" if hash["command"].downcase == "!calc"
 		@irc.privmsg @client_sid, target, "Google Search: #{gs(hash["parameters"])}" if hash["command"].downcase == "!g"

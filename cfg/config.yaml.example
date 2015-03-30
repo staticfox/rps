@@ -1,0 +1,44 @@
+configuration:
+  logging:
+
+events:
+
+modules: [ ["IRCConnectDone", "../app/events/ircconnectdone.rb"],
+           ["NewData", "../app/events/newdata.rb"],
+           ["IRCMsg", "../app/events/ircmsg.rb"],
+           ["IRCNumeric", "../app/events/ircnumeric.rb"],
+           ["IRCCommand", "../app/events/irccommand.rb"],
+           ["ModuleServClient", "../app/clients/moduleserv.rb"],
+           ["LimitServClient", "../app/clients/limitserv.rb"],
+           ["LimitServCore", "../app/modules/limitserv.rb"],
+           ["BotClient", "../app/clients/bot.rb"],
+           ["BotG", "../app/events/bot-g.rb"],
+           ["BotWeather", "../app/events/bot-weather.rb"],
+           ["BotQuotes", "../app/events/bot-quotes.rb"]
+         ]
+
+connections:
+  clients:
+    irc:
+      host: 127.0.0.1
+      port: 6667
+      ssl: false
+      parameters:
+        sid: 30X
+        server_name: Serv1-Bot.GeeksIRC.net
+        server_description: Serv1 Bots
+        server_password: 
+
+  servers:
+
+  databases:
+    test:
+      adapter: mysql
+      host: 127.0.0.1
+      username: RPS
+      password: 
+      port: 3306
+      database: RPS
+      pool: 10
+
+optional:

@@ -20,12 +20,24 @@ class ModuleServClient
 		@irc.client_set_mode @client_sid, "#debug +o ModuleServ"
 	end
 
+	 def get_stats
+                GC.start
+                num = `cat /proc/#{Process.pid}/status | grep "Threads"`.strip
+                num = num.split("\t")
+
+                ram = `cat /proc/#{Process.pid}/status | grep "VmSize"`.strip
+                ram = ram.split("\t")
+                return "[STATUS] Currently using #{num[1]} threads and #{ram[1][0..-3].to_i/1024} MB of memory."
+        end
+
 	def handle_privmsg hash
 		target = hash["target"]
 		target = hash["from"] if hash["target"] == @client_sid
-		@irc.privmsg @client_sid, target, "Test" if hash["command"] == "!test"
+		@irc.privmsg @client_sid, target, "Test" if hash["command"] == "!test" and hash["target"] == "#debug"
 
 		#@irc.privmsg @client_sid, target, "#{hash["from"]}: I see you're not away." if hash["command"] == "!notafk"
+
+		@irc.privmsg @client_sid, target, get_stats if hash["command"] == "!status" and hash["target"] == "#debug"
 	
 		if hash["command"] == "!module" and hash["target"] == "#debug" then
                         cp = hash["parameters"].split(' ') if !hash["parameters"].nil?

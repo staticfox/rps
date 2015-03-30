@@ -222,7 +222,7 @@ class IRCMsg
                 if modes.include?("-") then
                         modes = modes[1..-1].split('')
                         modes.each do |mode|
-                                User.connection.execute("UPDATE `users` SET `UModes` = REPLACE(`UModes`,'#{mode}', '') WHERE `UID` = '#{data[2]}';")
+                              User.connection.execute("UPDATE `users` SET `UModes` = REPLACE(`UModes`,'#{mode}', '') WHERE `UID` = '#{data[2]}';")
                         end
                 end
 		User.connection.disconnect!

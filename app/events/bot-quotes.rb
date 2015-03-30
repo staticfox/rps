@@ -16,7 +16,7 @@ class BotQuotes
 	def handle_privmsg hash
 		target = hash["target"]
 		target = hash["from"] if hash["target"] == @client_sid
-		@irc.privmsg @client_sid, target, "This is only a test." if hash["command"].downcase == "!test"
+		#@irc.privmsg @client_sid, target, "This is only a test." if hash["command"].downcase == "!test"
 	        #@irc.privmsg @client_sid, "Ryan", "#{hash['from']} is an oper." if @irc.is_oper_uid hash["from"]
 
 		if hash["command"].downcase == "!q" and target.include?("#") then
