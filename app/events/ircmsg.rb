@@ -227,7 +227,7 @@ class IRCMsg
         User.establish_connection(@config["connections"]["databases"]["test"])
         nmode = User.sanitize modes[1..-1]
         uid = User.sanitize data[2]
-        User.connection.execute("UPDATE `users` SET `UModes` = CONCAT(`UModes`,#{nmode} WHERE `UID` = #{uid};") if modes.include?("+")
+        User.connection.execute("UPDATE `users` SET `UModes` = CONCAT(`UModes`,#{nmode}) WHERE `UID` = #{uid};") if modes.include?("+")
 
         if modes.include?("-") then
             modes = modes[1..-1].split('')
