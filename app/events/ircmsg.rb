@@ -195,7 +195,7 @@ class IRCMsg
         User.establish_connection(@config["connections"]["databases"]["test"])
         chost = User.sanitize data[3]
         uid = User.sanitize data[2]
-        User.connection.execute("UPDATE `users` SET `CHost` = '#{chost}' WHERE `UID` = '#{uid}';")
+        User.connection.execute("UPDATE `users` SET `CHost` = #{chost} WHERE `UID` = #{uid};")
         User.connection.disconnect!
     end
 
