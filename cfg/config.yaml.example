@@ -41,4 +41,7 @@ connections:
       database: RPS
       pool: 10
 
-optional:
+debug-channels:
+  limitserv: '#rps-debug'
+  bot:  '#rps-debug'
+  moduleserv: '#rps-debug'
