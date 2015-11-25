@@ -5,70 +5,69 @@ require_relative 'events'
 
 class SocketClient
 
-	def initialize e
-		@e = e
-		@debug = true
-		@sockets = []
-	end
+  def initialize e
+    @e = e
+    @debug = true
+    @sockets = []
+  end
 
-	def Create name, host, port, ssl
-		sock = TCPSocket.open(host, port)
-		sock.setsockopt(Socket::SOL_SOCKET, Socket::SO_KEEPALIVE, true)
+  def Create name, host, port, ssl
+    sock = TCPSocket.open(host, port)
+    sock.setsockopt(Socket::SOL_SOCKET, Socket::SO_KEEPALIVE, true)
 
-		if ssl then
-        		ssl_context = OpenSSL::SSL::SSLContext.new
-        		ssl_context.verify_mode = OpenSSL::SSL::VERIFY_NONE
-        		sock = OpenSSL::SSL::SSLSocket.new(sock, ssl_context)
-        		sock.sync = true
-        		sock.connect
-		end
-		
-		if sock then
-			hash = {"name" => name, "host" => host, "port" => port, "ssl" => ssl, "socket" => sock}
-			@sockets = [] if @sockets.nil?
-			@sockets.push(hash)
-			@e.Run "ConnectionCompleted", name, sock
-		end
-	end
+    if ssl then
+      ssl_context = OpenSSL::SSL::SSLContext.new
+      ssl_context.verify_mode = OpenSSL::SSL::VERIFY_NONE
+      sock = OpenSSL::SSL::SSLSocket.new(sock, ssl_context)
+      sock.sync = true
+      sock.connect
+    end
 
-	def CheckForNewData
-		if !@sockets.nil? then
-			@sockets.each do |hash|
-				name = hash["name"]
-				ssl = hash["ssl"]
-				sock = hash["socket"]
+    if sock then
+      hash = {"name" => name, "host" => host, "port" => port, "ssl" => ssl, "socket" => sock}
+      @sockets = [] if @sockets.nil?
+      @sockets.push(hash)
+      @e.Run "ConnectionCompleted", name, sock
+    end
+  end
 
-				begin
-					data = sock.read_nonblock(32768) if ssl
-					data = sock.recv_nonblock(32768) if !ssl
-				rescue IO::WaitReadable
+  def CheckForNewData
+    if !@sockets.nil? then
+      @sockets.each do |hash|
+        name = hash["name"]
+        ssl = hash["ssl"]
+        sock = hash["socket"]
 
-				end
+        begin
+          data = sock.read_nonblock(32768) if ssl
+          data = sock.recv_nonblock(32768) if !ssl
+        rescue IO::WaitReadable
 
-				if data.is_a?(String) then
-					dataline = data.split("\r\n")
-					dataline.each do |line|
-						line = line.to_s.chomp
-						time = Time.now
-						puts "[~R] [#{name}] [#{time.strftime("%Y-%m-%d %H:%M:%S")}] #{line}" if @debug
-						@e.Run "NewData", name, sock, line
-					end
-				end
+        end
 
-				data = nil
-				line = nil
-				dataline = nil
-			end
-		end
+        if data.is_a?(String) then
+          dataline = data.split("\r\n")
+          dataline.each do |line|
+            line = line.to_s.chomp
+            time = Time.now
+            puts "[~R] [#{name}] [#{time.strftime("%Y-%m-%d %H:%M:%S")}] #{line}" if @debug
+            @e.Run "NewData", name, sock, line
+          end
+        end
 
-	end
-	
-	def Get name
-		@sockets.each do |socket|
-			return socket["sock"] if socket["name"] == name
-		end
-		return false
-	end				
+        data = nil
+        line = nil
+        dataline = nil
+      end
+    end
 
+  end
+
+  def Get name
+    @sockets.each do |socket|
+      return socket["sock"] if socket["name"] == name
+    end
+    return false
+  end
 
 end # End Class "SocketClient"
