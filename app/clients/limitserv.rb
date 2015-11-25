@@ -32,7 +32,7 @@ class LimitServClient
     @initialized = false
 
     @e.on_event do |type, name, sock|
-      if type == "IRCClientInit" then
+      if type == "IRCClientInit"
         config = @c.Get
         @irc = IRCLib.new name, sock, config["connections"]["databases"]["test"]
         connect_client
@@ -42,8 +42,8 @@ class LimitServClient
     end
 
     @e.on_event do |type, hash|
-      if type == "IRCChat" then
-        if !@initialized then
+      if type == "IRCChat"
+        if !@initialized
           config = @c.Get
           @irc = IRCLib.new hash["name"], hash["sock"], config["connections"]["databases"]["test"]
           connect_client

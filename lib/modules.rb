@@ -32,7 +32,7 @@ class Modules
     $classsloaded.each do |output|
       output.each do |classtitle|
         classtitle.each do |classthing, theclass|
-          if classname == classthing then
+          if classname == classthing
             $classsloaded.delete_at(count)
             $classsloaded.delete(output)
             $totalmodules.each do |amodule|

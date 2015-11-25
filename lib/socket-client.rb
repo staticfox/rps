@@ -15,7 +15,7 @@ class SocketClient
     sock = TCPSocket.open(host, port)
     sock.setsockopt(Socket::SOL_SOCKET, Socket::SO_KEEPALIVE, true)
 
-    if ssl then
+    if ssl
       ssl_context = OpenSSL::SSL::SSLContext.new
       ssl_context.verify_mode = OpenSSL::SSL::VERIFY_NONE
       sock = OpenSSL::SSL::SSLSocket.new(sock, ssl_context)
@@ -23,7 +23,7 @@ class SocketClient
       sock.connect
     end
 
-    if sock then
+    if sock
       hash = {"name" => name, "host" => host, "port" => port, "ssl" => ssl, "socket" => sock}
       @sockets = [] if @sockets.nil?
       @sockets.push(hash)
@@ -32,7 +32,7 @@ class SocketClient
   end
 
   def CheckForNewData
-    if !@sockets.nil? then
+    if !@sockets.nil?
       @sockets.each do |hash|
         name = hash["name"]
         ssl = hash["ssl"]
@@ -45,7 +45,7 @@ class SocketClient
 
         end
 
-        if data.is_a?(String) then
+        if data.is_a?(String)
           dataline = data.split("\r\n")
           dataline.each do |line|
             line = line.to_s.chomp

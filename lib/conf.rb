@@ -19,7 +19,7 @@ class Configuration
   def Save newconfig
     begin
       File.open('../cfg/config.yaml','w') do |cf|
-         cf.write $newconfig.to_yaml
+        cf.write $newconfig.to_yaml
       end
     rescue => e
       puts e.message

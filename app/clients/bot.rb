@@ -64,7 +64,7 @@ class BotClient
 
     return if hash["target"] != @client_sid
 
-    if hash["command"].downcase == "help" then
+    if hash["command"].downcase == "help"
       @irc.notice @client_sid, target, "***** Bot Help *****"
       @irc.notice @client_sid, target, "Bot allows channel owners to limit the amount of joins that happen in certain amount of time. This is to prevent join floods."
       #@irc.notice @client_sid, target, "For more info a command, type '/msg LimitServ help <command>' (without the quotes) for more information."
@@ -76,23 +76,23 @@ class BotClient
       @irc.notice @client_sid, target, "If you're having trouble or you need additional help, you may want to join the help channel #help."
     end
 
-    if hash["command"].downcase == "request" then
-      if hash["parameters"].nil? then
+    if hash["command"].downcase == "request"
+      if hash["parameters"].nil?
         @irc.notice @client_sid, target, "[ERROR] No chatroom was specified."
         return
       end
 
-      if !@irc.does_channel_exist hash["parameters"] then
+      if !@irc.does_channel_exist hash["parameters"]
         @irc.notice @client_sid, target, "[ERROR] The channel does not exist on this network."
         return
       end
 
-      if !@irc.is_chan_founder hash["parameters"], target and !@irc.is_oper_uid target then
+      if !@irc.is_chan_founder hash["parameters"], target and !@irc.is_oper_uid target
         @irc.notice @client_sid, target, "[ERROR] You must be founder of #{hash["parameters"]} in order to add Bot to the channel."
         return
       end
 
-      if is_channel_signedup hash["parameters"] then
+      if is_channel_signedup hash["parameters"]
         @irc.notice @client_sid, target, "[ERROR] This channel is already signed up for Bot."
         return
       end
@@ -105,23 +105,23 @@ class BotClient
       @irc.privmsg @client_sid, "#debug", "REQUEST: #{hash["parameters"]} - (#{@irc.get_nick_from_uid(target)}) [OPER Override]" if @irc.is_oper_uid target
     end
 
-    if hash["command"].downcase == "remove" then
-      if hash["parameters"].nil? then
+    if hash["command"].downcase == "remove"
+      if hash["parameters"].nil?
         @irc.notice @client_sid, target, "[ERROR] No chatroom was specified."
         return
       end
 
-      if !@irc.does_channel_exist hash["parameters"] then
+      if !@irc.does_channel_exist hash["parameters"]
         @irc.notice @client_sid, target, "[ERROR] The channel does not exist on this network."
         return
       end
 
-      if !@irc.is_chan_founder hash["parameters"], target and !@irc.is_oper_uid target then
+      if !@irc.is_chan_founder hash["parameters"], target and !@irc.is_oper_uid target
         @irc.notice @client_sid, target, "[ERROR] You must be founder of #{hash["parameters"]} in order to remove Bot from the channel."
         return
       end
 
-      if !is_channel_signedup hash["parameters"] then
+      if !is_channel_signedup hash["parameters"]
         @irc.notice @client_sid, target, "[ERROR] This channel is not signed up for Bot."
         return
       end
@@ -146,7 +146,7 @@ class BotClient
     @initialized = false
 
     @e.on_event do |type, name, sock|
-      if type == "IRCClientInit" then
+      if type == "IRCClientInit"
         config = @c.Get
         @irc = IRCLib.new name, sock, @config["connections"]["databases"]["test"]
         connect_client
@@ -157,8 +157,8 @@ class BotClient
     end
 
     @e.on_event do |type, hash|
-      if type == "IRCChat" then
-        if !@initialized then
+      if type == "IRCChat"
+        if !@initialized
           config = @c.Get
           @irc = IRCLib.new hash["name"], hash["sock"], config["connections"]["databases"]["test"]
           connect_client

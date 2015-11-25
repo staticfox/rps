@@ -39,16 +39,16 @@ class ModuleServClient
 
     @irc.privmsg @client_sid, target, get_stats if hash["command"] == "!status" and hash["target"] == "#debug"
 
-    if hash["command"] == "!module" and hash["target"] == "#debug" then
+    if hash["command"] == "!module" and hash["target"] == "#debug"
       cp = hash["parameters"].split(' ') if !hash["parameters"].nil?
 
-      if cp.nil? then
+      if cp.nil?
         cp = []
         cp.push("")
       end
 
       if cp[0] == "load"
-        if !File.file?(cp[1]) || !cp[1].include?(".rb") then
+        if !File.file?(cp[1]) || !cp[1].include?(".rb")
           @irc.privmsg @client_sid, target, "[MODULE ERROR] Could not find file: #{cp[1]}"
           return
         end
@@ -59,7 +59,7 @@ class ModuleServClient
         @irc.privmsg @client_sid, target, "[MODULE] Loaded file '#{cp[1]}' with class '#{cp[2]}'" if result
       end
 
-      if cp[0] == "unload" then
+      if cp[0] == "unload"
         result = @m.UnloadByClassName cp[1]
         @irc.privmsg @client_sid, target, "[MODULE ERROR] Could not unload module: #{cp[1]} - Not loaded? Wrong module name?" if !result
         @irc.privmsg @client_sid, target, "[MODULE] Successfully unloaded #{cp[1]}" if result
@@ -80,7 +80,7 @@ class ModuleServClient
     @initialized = false
 
     @e.on_event do |type, name, sock|
-      if type == "IRCClientInit" then
+      if type == "IRCClientInit"
         config = @c.Get
         @irc = IRCLib.new name, sock, config["connections"]["databases"]["test"]
         connect_client
@@ -89,8 +89,8 @@ class ModuleServClient
     end
 
     @e.on_event do |type, hash|
-      if type == "IRCChat" then
-        if !@initialized then
+      if type == "IRCChat"
+        if !@initialized
           config = @c.Get
           @irc = IRCLib.new hash["name"], hash["sock"], config["connections"]["databases"]["test"]
           connect_client
