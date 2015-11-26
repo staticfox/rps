@@ -71,6 +71,10 @@ class IRCLib
     send_data @name, @sock, ":#{sid} NOTICE #{target} :#{message}\r\n"
   end
 
+  def wallop sid, message
+    send_data @name, @sock, ":#{sid} OPERWALL :#{message}\r\n"
+  end
+
   def get_uid_object uid
     User.establish_connection(@db)
     user = User.connection.select_all("SELECT * FROM `users` WHERE `UID` = '#{uid}';")

@@ -196,6 +196,7 @@ class LimitServCore
         puts "Updated Channel Mode"
         @irc.privmsg @client_sid, @config["debug-channels"]["limitserv"], "[!NUKE!] - #{query.Channel}"
       }
+      @irc.wallop @client_sid, "\x02#{@irc.get_nick_from_uid target}\x02 used \x02NUKE\x02 unsetting the limit in all channels"
 
     when "request"
       return @irc.notice @client_sid, target, "[ERROR] No chatroom was specified." if hash["parameters"].nil?
