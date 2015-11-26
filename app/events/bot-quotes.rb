@@ -42,7 +42,7 @@ class BotQuotes
         Quote.establish_connection(@config["connections"]["databases"]["test"])
         query = Quote.where('ID = ? AND Channel = ?', cp[1], target)
 
-        if query.size == 0
+        if query.nil?
           @irc.privmsg @client_sid, target, "Quote ID #{cp[1]} does not exist for #{target}."
           Quote.connection.disconnect!
           return
@@ -57,7 +57,7 @@ class BotQuotes
         Quote.establish_connection(@config["connections"]["databases"]["test"])
         query = Quote.where('Channel = ? AND Quote LIKE ?', target, "%#{cp[1]}%")
 
-        if query.size == 0
+        if query.nil?
           @irc.privmsg @client_sid, target, "No quotes could be found for #{target}."
           Quote.connection.disconnect!
           return
