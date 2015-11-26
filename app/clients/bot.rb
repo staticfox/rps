@@ -7,6 +7,10 @@ end
 
 class BotClient
 
+  def me_user_notice recp, message
+    @irc.notice @client_sid, recp, message
+  end
+
   def send_data name, sock, string
     time = Time.now
     puts "[~S] [#{name}] [#{time.strftime("%Y-%m-%d %H:%M:%S")}] #{string}"
@@ -24,7 +28,6 @@ class BotClient
     BotChannel.connection.disconnect!
     return false
   end
-
 
   def signup_channel channel
     BotChannel.establish_connection(@config["connections"]["databases"]["test"])
@@ -59,43 +62,26 @@ class BotClient
     @e.Run "Bot-Chat", hash
     target = hash["target"]
     target = hash["from"] if target == @client_sid
-    @irc.privmsg @client_sid, target, "This is only a test." if hash["command"] == "!test"
 
     return if target != @client_sid
 
     if hash["command"].downcase == "help"
-      @irc.notice @client_sid, target, "***** Bot Help *****"
-      @irc.notice @client_sid, target, "Bot allows channel owners to limit the amount of joins that happen in certain amount of time. This is to prevent join floods."
-      @irc.notice @client_sid, target, "The following commands are available:"
-      @irc.notice @client_sid, target, "REQUEST                   Request Bot for your channel."
-      @irc.notice @client_sid, target, "REMOVE                    Remove Bot from your channel."
-      @irc.notice @client_sid, target, "***** End of Help *****"
-      @irc.notice @client_sid, target, "If you're having trouble or you need additional help, you may want to join the help channel #help."
+      me_user_notice, target, "***** Bot Help *****"
+      me_user_notice, target, "Bot allows channel owners to limit the amount of joins that happen in certain amount of time. This is to prevent join floods."
+      me_user_notice, target, "The following commands are available:"
+      me_user_notice, target, "REQUEST                   Request Bot for your channel."
+      me_user_notice, target, "REMOVE                    Remove Bot from your channel."
+      me_user_notice, target, "***** End of Help *****"
+      me_user_notice, target, "If you're having trouble or you need additional help, you may want to join the help channel #help."
     end
 
     if hash["command"].downcase == "request"
-      if hash["parameters"].nil?
-        @irc.notice @client_sid, target, "[ERROR] No chatroom was specified."
-        return
-      end
-
-      if !@irc.does_channel_exist hash["parameters"]
-        @irc.notice @client_sid, target, "[ERROR] The channel does not exist on this network."
-        return
-      end
-
-      if !@irc.is_chan_founder hash["parameters"], target and !@irc.is_oper_uid target
-        @irc.notice @client_sid, target, "[ERROR] You must be founder of #{hash["parameters"]} in order to add Bot to the channel."
-        return
-      end
-
-      if is_channel_signedup hash["parameters"]
-        @irc.notice @client_sid, target, "[ERROR] This channel is already signed up for Bot."
-        return
-      end
-
+      return me_user_notice, target, "[ERROR] No chatroom was specified." if hash["parameters"].nil?
+      return me_user_notice, target, "[ERROR] The channel does not exist on this network." if !@irc.does_channel_exist hash["parameters"]
+      return me_user_notice, target, "[ERROR] You must be founder of #{hash["parameters"]} in order to add Bot to the channel." if !@irc.is_chan_founder hash["parameters"], target and !@irc.is_oper_uid target
+      return me_user_notice, target, "[ERROR] This channel is already signed up for Bot." if is_channel_signedup hash["parameters"]
       signup_channel hash["parameters"]
-      @irc.notice @client_sid, target, "[SUCCESS] Bot has joined #{hash["parameters"]}."
+      me_user_notice, target, "[SUCCESS] Bot has joined #{hash["parameters"]}."
       @irc.client_join_channel @client_sid, hash["parameters"]
       @irc.client_set_mode @client_sid, "#{hash["parameters"]} +o #{@client_sid}"
       @irc.privmsg @client_sid, "#debug", "REQUEST: #{hash["parameters"]} - (#{@irc.get_nick_from_uid(target)})" if @irc.is_chan_founder hash["parameters"], target
@@ -103,28 +89,14 @@ class BotClient
     end
 
     if hash["command"].downcase == "remove"
-      if hash["parameters"].nil?
-        @irc.notice @client_sid, target, "[ERROR] No chatroom was specified."
-        return
-      end
 
-      if !@irc.does_channel_exist hash["parameters"]
-        @irc.notice @client_sid, target, "[ERROR] The channel does not exist on this network."
-        return
-      end
-
-      if !@irc.is_chan_founder hash["parameters"], target and !@irc.is_oper_uid target
-        @irc.notice @client_sid, target, "[ERROR] You must be founder of #{hash["parameters"]} in order to remove Bot from the channel."
-        return
-      end
-
-      if !is_channel_signedup hash["parameters"]
-        @irc.notice @client_sid, target, "[ERROR] This channel is not signed up for Bot."
-        return
-      end
+      return me_user_notice, target, "[ERROR] No chatroom was specified." if hash["parameters"].nil?
+      return me_user_notice, target, "[ERROR] The channel does not exist on this network." if !@irc.does_channel_exist hash["parameters"]
+      return me_user_notice, target, "[ERROR] You must be founder of #{hash["parameters"]} in order to remove Bot from the channel." if !@irc.is_chan_founder hash["parameters"], target and !@irc.is_oper_uid target
+      return me_user_notice, target, "[ERROR] This channel is not signed up for Bot." if !is_channel_signedup hash["parameters"]
 
       remove_channel hash["parameters"]
-      @irc.notice @client_sid, target, "[SUCCESS] Bot has left #{hash["parameters"]}."
+      me_user_notice, target, "[SUCCESS] Bot has left #{hash["parameters"]}."
       @irc.client_part_channel @client_sid, hash["parameters"]
       @irc.privmsg @client_sid, "#debug", "REMOVED: #{hash["parameters"]} - (#{@irc.get_nick_from_uid(target)})" if @irc.is_chan_founder hash["parameters"], target
       @irc.privmsg @client_sid, "#debug", "REMOVED: #{hash["parameters"]} - (#{@irc.get_nick_from_uid(target)}) [OPER Override]" if @irc.is_oper_uid target
