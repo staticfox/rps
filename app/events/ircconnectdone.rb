@@ -25,7 +25,7 @@ class IRCConnectDone
         send_data name, sock, "CAPAB :QS EX CHW IE KLN KNOCK ZIP TB UNKLN CLUSTER ENCAP SERVICES RSFNC SAVE EUID EOPMOD BAN MLOCK"
         send_data name, sock, "SERVER #{name} 1 :#{description}"
         send_data name, sock, "SVINFO 6 6 0 #{time}"
-        sleep 5
+        sleep 0.5
         e.Run "IRCClientInit", name, sock
       end
     end
