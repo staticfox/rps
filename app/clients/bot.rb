@@ -53,7 +53,7 @@ class BotClient
     queries.each do |query|
       @irc.client_join_channel @client_sid, query.Channel
       @irc.client_set_mode @client_sid, "#{query.Channel} +o #{@client_sid}"
-      @irc.privmsg @client_sid, "#debug", "JOINED: #{query.Channel}"
+      @irc.privmsg @client_sid, @config["debug-channels"]["bot"], "JOINED: #{query.Channel}"
     end
     BotChannel.connection.disconnect!
   end
@@ -84,8 +84,8 @@ class BotClient
       me_user_notice, target, "[SUCCESS] Bot has joined #{hash["parameters"]}."
       @irc.client_join_channel @client_sid, hash["parameters"]
       @irc.client_set_mode @client_sid, "#{hash["parameters"]} +o #{@client_sid}"
-      @irc.privmsg @client_sid, "#debug", "REQUEST: #{hash["parameters"]} - (#{@irc.get_nick_from_uid(target)})" if @irc.is_chan_founder hash["parameters"], target
-      @irc.privmsg @client_sid, "#debug", "REQUEST: #{hash["parameters"]} - (#{@irc.get_nick_from_uid(target)}) [OPER Override]" if @irc.is_oper_uid target
+      @irc.privmsg @client_sid, @config["debug-channels"]["bot"], "REQUEST: #{hash["parameters"]} - (#{@irc.get_nick_from_uid(target)})" if @irc.is_chan_founder hash["parameters"], target
+      @irc.privmsg @client_sid, @config["debug-channels"]["bot"], "REQUEST: #{hash["parameters"]} - (#{@irc.get_nick_from_uid(target)}) [OPER Override]" if @irc.is_oper_uid target
     end
 
     if hash["command"].downcase == "remove"
@@ -98,8 +98,8 @@ class BotClient
       remove_channel hash["parameters"]
       me_user_notice, target, "[SUCCESS] Bot has left #{hash["parameters"]}."
       @irc.client_part_channel @client_sid, hash["parameters"]
-      @irc.privmsg @client_sid, "#debug", "REMOVED: #{hash["parameters"]} - (#{@irc.get_nick_from_uid(target)})" if @irc.is_chan_founder hash["parameters"], target
-      @irc.privmsg @client_sid, "#debug", "REMOVED: #{hash["parameters"]} - (#{@irc.get_nick_from_uid(target)}) [OPER Override]" if @irc.is_oper_uid target
+      @irc.privmsg @client_sid, @config["debug-channels"]["bot"], "REMOVED: #{hash["parameters"]} - (#{@irc.get_nick_from_uid(target)})" if @irc.is_chan_founder hash["parameters"], target
+      @irc.privmsg @client_sid, @config["debug-channels"]["bot"], "REMOVED: #{hash["parameters"]} - (#{@irc.get_nick_from_uid(target)}) [OPER Override]" if @irc.is_oper_uid target
     end
   end
 
