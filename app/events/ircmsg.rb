@@ -24,14 +24,10 @@ class IRCMsg
   def handle_chat name, sock, line
     fullmessage = line.split(':')
     fullmessage = fullmessage[2]
-    if fullmessage.nil?
-      return
-    end
+    return if fullmessage.nil?
     command = fullmessage.split(' ')
     command = command[0]
-    if command.nil?
-      return
-    end
+    return if command.nil?
     commandlength = command.length
     commandlength += 1
     parameters = fullmessage[commandlength..-1]
