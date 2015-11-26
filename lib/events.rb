@@ -31,7 +31,7 @@ class Events
     @handlers[event] << block
   end
 
-  def on_event(&block)
+  def on_event &block
     Signup(:event, block)
   end
 
