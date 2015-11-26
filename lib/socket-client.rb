@@ -35,7 +35,7 @@ class SocketClient
     if !@sockets.nil?
       @sockets.each do |hash|
         name = hash["name"]
-        ssl = hash["ssl"]
+        ssl  = hash["ssl"]
         sock = hash["socket"]
 
         begin

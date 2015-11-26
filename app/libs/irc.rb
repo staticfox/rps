@@ -18,9 +18,7 @@ class IRCLib
   end
 
   def add_client server_sid, sid, nick, modes, user, host, real
-    @bots.each do |bot|
-      return -1 if bot["nick"] == nick
-    end
+    @bots.each { |bot| return -1 if bot["nick"] == nick }
 
     send_data @name, @sock, ":#{server_sid} EUID #{nick} 2 #{Time.now.to_i} #{modes} #{user} #{host} 0 #{sid} * * :#{real}\r\n"
 
@@ -29,10 +27,10 @@ class IRCLib
   end
 
   def remove_client sid, msg = nil
-    @bots.each do |bot|
+    @bots.each { |bot|
       send_data @name, @sock, ":#{sid} QUIT :#{msg}\r\n" if bot["sid"] == sid
       @bots.delete bot if bot["sid"] == sid
-    end
+    }
     return -1
   end
 
@@ -73,141 +71,134 @@ class IRCLib
     send_data @name, @sock, ":#{sid} NOTICE #{target} :#{message}\r\n"
   end
 
-  def get_nick_from_uid uid
-    User.establish_connection(@db)
-    user = User.connection.select_all("SELECT `Nick` FROM `users` WHERE `UID` = '#{uid}';")
-
-    user.each do |info|
-      User.connection.disconnect!
-      return info["Nick"]
-    end
-    return false
-  end
-
-  def get_uid_from_nick nick
-    User.establish_connection(@db)
-    user = User.connection.select_all("SELECT `UID` FROM `users` WHERE `Nick` = '#{nick}';")
-
-    user.each do |info|
-    User.connection.disconnect!
-      return info["UID"]
-    end
-
-    return false
-  end
-
-  def is_oper_uid uid
+  def get_uid_object uid
     User.establish_connection(@db)
     user = User.connection.select_all("SELECT `UModes` FROM `users` WHERE `UID` = '#{uid}';")
 
-    user.each do |info|
+    user.each { |info|
       User.connection.disconnect!
-      return true if info["UModes"].include?("o")
-    end
+      return info
+    }
 
+    return false
+  end
+
+  def get_nick_object nick
+    User.establish_connection(@db)
+    user = User.connection.select_all("SELECT `UID` FROM `users` WHERE `Nick` = '#{nick}';")
+
+    user.each { |info|
+    User.connection.disconnect!
+      return info["UID"]
+    }
+
+    return false
+  end
+
+  def get_channel_membership channel, uid
+    UserInChannel.establish_connection(@db)
+    userinchannel = UserInChannel.connection.select_all("SELECT `Modes` FROM `user_in_channels` WHERE `Channel` = '#{channel}' AND `User` = '#{uid}';")
+
+    userinchannel.each { |info|
+      UserInChannel.connection.disconnect!
+      return info
+    }
+
+    return false
+  end
+
+  def get_nick_from_uid uid
+    uid_object = get_uid_object uid
+    return false if !uid_object
+
+    return uid_object["Nick"]
+  end
+
+  def get_uid_from_nick nick
+    nick_object = get_nick_object nick
+    return false if !nick_object
+
+    return nick_object["UID"]
+  end
+
+  def is_oper_uid uid
+    uid_object = get_uid_object uid
+    return false if !uid_object
+
+    return true if uid_object["UModes"].include?("o")
     return false
   end
 
   def is_oper_nick nick
-    User.establish_connection(@db)
-    user = User.connection.select_all("SELECT `UModes` FROM `users` WHERE `Nick` = '#{nick}';")
+    nick_object = get_nick_object nick
+    return false if !nick_object
 
-    user.each do |info|
-      User.connection.disconnect!
-      return true if info["UModes"].include?("o")
-    end
-
+    return true if nick_object["UModes"].include?("o")
     return false
   end
 
   def is_chan_founder channel, uid
-    UserInChannel.establish_connection(@db)
-    userinchannel = UserInChannel.connection.select_all("SELECT `Modes` FROM `user_in_channels` WHERE `Channel` = '#{channel}' AND `User` = '#{uid}';")
+    chan_access = get_channel_membership channel, uid
+    return false if !chan_access
 
-    userinchannel.each do |info|
-      UserInChannel.connection.disconnect!
-      return true if info["Modes"].include?("q")
-    end
-
+    return true if chan_access["Modes"].include?("q")
     return false
   end
 
   def is_chan_admin channel, uid
-    UserInChannel.establish_connection(@db)
-    userinchannel = UserInChannel.connection.select_all("SELECT `Modes` FROM `user_in_channels` WHERE `Channel` = '#{channel}' AND `User` = '#{uid}';")
+    chan_access = get_channel_membership channel, uid
+    return false if !chan_access
 
-    userinchannel.each do |info|
-      UserInChannel.connection.disconnect!
-      return true if info["Modes"].include?("a")
-    end
-
+    return true if chan_access["Modes"].include?("a")
     return false
   end
 
   def is_chan_op channel, uid
-    UserInChannel.establish_connection(@db)
-    userinchannel = UserInChannel.connection.select_all("SELECT `Modes` FROM `user_in_channels` WHERE `Channel` = '#{channel}' AND `User` = '#{uid}';")
+    chan_access = get_channel_membership channel, uid
+    return false if !chan_access
 
-    userinchannel.each do |info|
-      UserInChannel.connection.disconnect!
-      return true if info["Modes"].include?("o")
-    end
-
+    return true if chan_access["Modes"].include?("o")
     return false
   end
 
   def is_chan_halfop channel, uid
-    UserInChannel.establish_connection(@db)
-    userinchannel = UserInChannel.connection.select_all("SELECT `Modes` FROM `user_in_channels` WHERE `Channel` = '#{channel}' AND `User` = '#{uid}';")
+    chan_access = get_channel_membership channel, uid
+    return false if !chan_access
 
-    userinchannel.each do |info|
-      UserInChannel.connection.disconnect!
-      return true if info["Modes"].include?("h")
-    end
-
+    return true if chan_access["Modes"].include?("h")
     return false
   end
 
   def is_chan_voice channel, uid
-    UserInChannel.establish_connection(@db)
-    userinchannel = UserInChannel.connection.select_all("SELECT `Modes` FROM `user_in_channels` WHERE `Channel` = '#{channel}' AND `User` = '#{uid}';")
+    chan_access = get_channel_membership channel, uid
+    return false if !chan_access
 
-    userinchannel.each do |info|
-      UserInChannel.connection.disconnect!
-      return true if info["Modes"].include?("v")
-    end
-
+    return true if chan_access["Modes"].include?("v")
     return false
   end
 
   def is_user_ssl_connected uid
-    User.establish_connection(@db)
-    user = User.connection.select_all("SELECT `UModes` FROM `users` WHERE `UID` = '#{uid}';")
+    uid_object = get_uid_object uid
+    return false if !uid_object
 
-    user.each do |info|
-      User.connection.disconnect!
-      return true if info["UModes"].include?("Z")
-    end
-
+    return true if uid_object["UModes"].include?("Z")
     return false
   end
 
   def people_in_channel channel
     UserInChannel.establish_connection(@db)
     userinchannel = UserInChannel.connection.select_all("SELECT COUNT(*) AS `Total` FROM `user_in_channels` WHERE `Channel` = '#{channel.downcase}';")
-    userinchannel.each do |query|
+    userinchannel.each { |query|
       UserInChannel.connection.disconnect!
       return query["Total"]
-    end
+    }
   end
 
   def get_channels
     channellist = []
     Channel.establish_connection(@db)
     channels = Channel.select(:Channel).distinct
-    channels.each do |channel|
-      channellist.push(channel.Channel)
-    end
+    channels.each { |channel| channellist.push(channel.Channel) }
     Channel.connection.disconnect!
     return channellist
   end
