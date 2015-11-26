@@ -122,6 +122,7 @@ class IRCMsg
       end
       UserInChannel.connection.disconnect!
     end
+    @e.Run "IRCChanSJoin", name, sock, data
   end
 
   def handle_sid name, sock, data

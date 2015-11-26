@@ -95,6 +95,13 @@ class LimitServCore
     return array
   end
 
+  def burst_data data
+    return unless data[4].include? 'l'
+    LimitServ_Channel.establish_connection(@config["connections"]["databases"]["test"])
+    LimitServ_Channel.connection.execute("UPDATE `limit_serv_channels` SET `People` = '#{data[5].to_i}', `Time` = '#{Time.now.to_i}' WHERE `Channel` = '#{data[3].downcase}';")
+    LimitServ_Channel.connection.disconnect!
+  end
+
   def run_checks
     LimitServ_Channel.establish_connection(@config["connections"]["databases"]["test"])
     queries = LimitServ_Channel.where('Time <= ?', Time.now.to_i)
@@ -267,6 +274,8 @@ class LimitServCore
         config = @c.Get if @irc.nil?
         @irc = IRCLib.new name, sock, @config["connections"]["databases"]["test"] if @irc.nil?
         run_checks
+      elsif type == "IRCChanSJoin"
+        burst_data data
       end
     end
   end

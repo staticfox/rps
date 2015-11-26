@@ -113,7 +113,6 @@ class IRCLib
 
   def get_nick_from_uid uid
     uid_object = get_uid_object uid
-    puts "uid_object is #{uid_object} from uid #{uid}"
     return false if !uid_object
 
     return uid_object["Nick"]
