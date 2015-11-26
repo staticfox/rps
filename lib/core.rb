@@ -48,7 +48,7 @@ class Core
 
   loop {
     s.CheckForNewData
-    sleep 0.1
+    sleep 0.001
   }
 
 end # End Class "Core"
