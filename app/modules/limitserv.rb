@@ -109,7 +109,7 @@ class LimitServCore
       calc = newlimit - oldlimit
       puts "Offset: #{calc}"
 
-      if calc <= -2 or calc >= 2 then
+      if calc <= -2 or calc >= 2
 
         puts "Channel List Before Checking - #{@channellist}"
 
@@ -162,7 +162,7 @@ class LimitServCore
     target = hash["from"]
     @irc.privmsg @client_sid, target, "This is only a test." if hash["command"] == "!test"
 
-    if hash["command"].downcase == "help" then
+    if hash["command"].downcase == "help"
       @irc.notice @client_sid, target, "***** LimitServ Help *****"
       @irc.notice @client_sid, target, "LimitServ allows channel owners to limit the amount of joins that happen in certain amount of time. This is to prevent join floods."
       #@irc.notice @client_sid, target, "For more info a command, type '/msg LimitServ help <command>' (without the quotes) for more information."
@@ -175,8 +175,8 @@ class LimitServCore
       @irc.notice @client_sid, target, "If you're having trouble or you need additional help, you may want to join the help channel #help."
     end
 
-    if hash["command"].downcase == "list" then
-      if !@irc.is_oper_uid target then
+    if hash["command"].downcase == "list"
+      if !@irc.is_oper_uid target
         @irc.notice @client_sid, target, "[ERROR] You must be an oper to use this command."
         return
       end
@@ -185,8 +185,8 @@ class LimitServCore
       end
     end
 
-    if hash["command"].downcase == "nuke" then
-      if !@irc.is_oper_uid target then
+    if hash["command"].downcase == "nuke"
+      if !@irc.is_oper_uid target
         @irc.notice @client_sid, target, "[ERROR] You must be an oper to use this command."
         return
       end
@@ -203,23 +203,23 @@ class LimitServCore
     end
 
 
-    if hash["command"].downcase == "request" then
-      if hash["parameters"].nil? then
+    if hash["command"].downcase == "request"
+      if hash["parameters"].nil?
         @irc.notice @client_sid, target, "[ERROR] No chatroom was specified."
         return
       end
 
-      if !@irc.does_channel_exist hash["parameters"] then
+      if !@irc.does_channel_exist hash["parameters"]
         @irc.notice @client_sid, target, "[ERROR] The channel does not exist on this network."
         return
       end
 
-      if !@irc.is_chan_founder hash["parameters"], target and !@irc.is_oper_uid target then
+      if !@irc.is_chan_founder hash["parameters"], target and !@irc.is_oper_uid target
         @irc.notice @client_sid, target, "[ERROR] You must be founder of #{hash["parameters"]} in order to add LimitServ to the channel."
         return
       end
 
-      if is_channel_signedup hash["parameters"] then
+      if is_channel_signedup hash["parameters"]
         @irc.notice @client_sid, target, "[ERROR] This channel is already signed up for LimitServ."
         return
       end
@@ -231,23 +231,23 @@ class LimitServCore
       @irc.privmsg @client_sid, @config["debug-channels"]["limitserv"], "REQUEST: #{hash["parameters"]} - (#{@irc.get_nick_from_uid(target)})#{"[OPER Override]" if @irc.is_oper_uid target and !@irc.is_chan_founder hash["parameters"], target}"
     end
 
-    if hash["command"].downcase == "remove" then
-      if hash["parameters"].nil? then
+    if hash["command"].downcase == "remove"
+      if hash["parameters"].nil?
         @irc.notice @client_sid, target, "[ERROR] No chatroom was specified."
         return
       end
 
-      if !@irc.does_channel_exist hash["parameters"] then
+      if !@irc.does_channel_exist hash["parameters"]
         @irc.notice @client_sid, target, "[ERROR] The channel does not exist on this network."
         return
       end
 
-      if !@irc.is_chan_founder hash["parameters"], target and !@irc.is_oper_uid target then
+      if !@irc.is_chan_founder hash["parameters"], target and !@irc.is_oper_uid target
         @irc.notice @client_sid, target, "[ERROR] You must be founder of #{hash["parameters"]} in order to remove LimitServ from the channel."
         return
       end
 
-      if !is_channel_signedup hash["parameters"] then
+      if !is_channel_signedup hash["parameters"]
         @irc.notice @client_sid, target, "[ERROR] This channel is not signed up for LimitServ."
         return
       end
@@ -273,23 +273,23 @@ class LimitServCore
     @channellist = []
 
     @e.on_event do |type, name, sock|
-      if type == "LimitServ-Init" then
+      if type == "LimitServ-Init"
         @irc = IRCLib.new name, sock, @config["connections"]["databases"]["test"]
         join_channels
       end
     end
 
     @e.on_event do |type, hash|
-      if type == "LimitServ-Chat" then
+      if type == "LimitServ-Chat"
         @irc = IRCLib.new hash["name"], hash["sock"], @config["connections"]["databases"]["test"] if @irc.nil?
-        if hash["target"] == @client_sid then
+        if hash["target"] == @client_sid
           handle_privmsg hash if hash["msgtype"] == "PRIVMSG" or hash["msgtype"] == "NOTICE"
         end
       end
     end
 
     @e.on_event do |type, name, sock, data|
-      if type == "IRCChanJoin" or type == "IRCChanPart" or type == "IRCPing" or type == "IRCClientQuit" then
+      if type == "IRCChanJoin" or type == "IRCChanPart" or type == "IRCPing" or type == "IRCClientQuit"
         config = @c.Get if @irc.nil?
         @irc = IRCLib.new name, sock, @config["connections"]["databases"]["test"] if @irc.nil?
         run_checks
