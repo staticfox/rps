@@ -178,6 +178,7 @@ class LimitServCore
     when "list"
       return @irc.notice @client_sid, target, "[ERROR] You must be an oper to use this command." if !@irc.is_oper_uid target
       stats_channels.each { |line| @irc.notice @client_sid, target, line }
+
     when "nuke"
       return @irc.notice @client_sid, target, "[ERROR] You must be an oper to use this command." if !@irc.is_oper_uid target
       LimitServ_Channel.establish_connection(@config["connections"]["databases"]["test"])
@@ -190,27 +191,12 @@ class LimitServCore
         puts "Updated Channel Mode"
         @irc.privmsg @client_sid, @config["debug-channels"]["limitserv"], "[!NUKE!] - #{query.Channel}"
       end
+
     when "request"
-      if hash["parameters"].nil?
-        @irc.notice @client_sid, target, "[ERROR] No chatroom was specified."
-        return
-      end
-
-      if !@irc.does_channel_exist hash["parameters"]
-        @irc.notice @client_sid, target, "[ERROR] The channel does not exist on this network."
-        return
-      end
-
-      if !@irc.is_chan_founder hash["parameters"], target and !@irc.is_oper_uid target
-        @irc.notice @client_sid, target, "[ERROR] You must be founder of #{hash["parameters"]} in order to add LimitServ to the channel."
-        return
-      end
-
-      if is_channel_signedup hash["parameters"]
-        @irc.notice @client_sid, target, "[ERROR] This channel is already signed up for LimitServ."
-        return
-      end
-
+      return @irc.notice @client_sid, target, "[ERROR] No chatroom was specified." if hash["parameters"].nil?
+      return @irc.notice @client_sid, target, "[ERROR] The channel does not exist on this network." if !@irc.does_channel_exist hash["parameters"]
+      return @irc.notice @client_sid, target, "[ERROR] You must be founder of #{hash["parameters"]} in order to add LimitServ to the channel." if !@irc.is_chan_founder hash["parameters"], target and !@irc.is_oper_uid target
+      return @irc.notice @client_sid, target, "[ERROR] This channel is already signed up for LimitServ." if is_channel_signedup hash["parameters"]
       signup_channel hash["parameters"]
       @irc.notice @client_sid, target, "[SUCCESS] #{hash["parameters"]} will now be monitored by LimitServ."
       @irc.client_join_channel @client_sid, hash["parameters"]
@@ -218,26 +204,10 @@ class LimitServCore
       @irc.privmsg @client_sid, @config["debug-channels"]["limitserv"], "REQUEST: #{hash["parameters"]} - (#{@irc.get_nick_from_uid(target)})#{"[OPER Override]" if @irc.is_oper_uid target and !@irc.is_chan_founder hash["parameters"], target}"
 
     when "remove"
-      if hash["parameters"].nil?
-        @irc.notice @client_sid, target, "[ERROR] No chatroom was specified."
-        return
-      end
-
-      if !@irc.does_channel_exist hash["parameters"]
-        @irc.notice @client_sid, target, "[ERROR] The channel does not exist on this network."
-        return
-      end
-
-      if !@irc.is_chan_founder hash["parameters"], target and !@irc.is_oper_uid target
-        @irc.notice @client_sid, target, "[ERROR] You must be founder of #{hash["parameters"]} in order to remove LimitServ from the channel."
-        return
-      end
-
-      if !is_channel_signedup hash["parameters"]
-        @irc.notice @client_sid, target, "[ERROR] This channel is not signed up for LimitServ."
-        return
-      end
-
+      return @irc.notice @client_sid, target, "[ERROR] No chatroom was specified." if hash["parameters"].nil?
+      return @irc.notice @client_sid, target, "[ERROR] The channel does not exist on this network." if !@irc.does_channel_exist hash["parameters"]
+      return @irc.notice @client_sid, target, "[ERROR] You must be founder of #{hash["parameters"]} in order to remove LimitServ from the channel." if !@irc.is_chan_founder hash["parameters"], target and !@irc.is_oper_uid target
+      return @irc.notice @client_sid, target, "[ERROR] This channel is not signed up for LimitServ." if !is_channel_signedup hash["parameters"]
       remove_channel hash["parameters"]
       @irc.notice @client_sid, target, "[SUCCESS] #{hash["parameters"]} will not be monitored by LimitServ."
       @irc.client_part_channel @client_sid, hash["parameters"]
