@@ -33,7 +33,7 @@ class SocketClient
 
   def CheckForNewData
     if !@sockets.nil?
-      @sockets.each do |hash|
+      @sockets.each { |hash|
         name = hash["name"]
         ssl  = hash["ssl"]
         sock = hash["socket"]
@@ -47,26 +47,24 @@ class SocketClient
 
         if data.is_a?(String)
           dataline = data.split("\r\n")
-          dataline.each do |line|
+          dataline.each { |line|
             line = line.to_s.chomp
             time = Time.now
             puts "[~R] [#{name}] [#{time.strftime("%Y-%m-%d %H:%M:%S")}] #{line}" if @debug
             @e.Run "NewData", name, sock, line
-          end
+          }
         end
 
         data = nil
         line = nil
         dataline = nil
-      end
+      }
     end
 
   end
 
   def Get name
-    @sockets.each do |socket|
-      return socket["sock"] if socket["name"] == name
-    end
+    @sockets.each { |socket| return socket["sock"] if socket["name"] == name }
     return false
   end
 
