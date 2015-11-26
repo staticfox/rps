@@ -49,11 +49,11 @@ class LimitServCore
     LimitServ_Channel.establish_connection(@config["connections"]["databases"]["test"])
     queries = LimitServ_Channel.select(:Channel)
     return if queries.count == 0
-    queries.each do |query|
+    queries.each { |query|
       @irc.client_join_channel @client_sid, query.Channel
       @irc.client_set_mode @client_sid, "#{query.Channel} +o #{@client_sid}"
       @irc.privmsg @client_sid, @config["debug-channels"]["limitserv"], "JOINED: #{query.Channel}"
-    end
+    }
     LimitServ_Channel.connection.disconnect!
   end
 
@@ -77,7 +77,7 @@ class LimitServCore
     queries = LimitServ_Channel.where('Time <= ?', Time.now.to_i)
     return if queries.count == 0
     array = []
-    queries.each do |query|
+    queries.each { |query|
       oldlimit = query.People.to_i
       newlimit = @irc.people_in_channel query.Channel
       newlimit = newlimit.to_i
@@ -90,7 +90,7 @@ class LimitServCore
       #puts "Offset: #{calc}"
       string = "#{query.Channel} - Current Amount: #{channellimit} - Current Limit: #{newlimit} - Offset: #{calc} - Offset Reached: #{ofr}"
       array.push(string)
-    end
+    }
     LimitServ_Channel.connection.disconnect!
     return array
   end
@@ -99,7 +99,7 @@ class LimitServCore
     LimitServ_Channel.establish_connection(@config["connections"]["databases"]["test"])
     queries = LimitServ_Channel.where('Time <= ?', Time.now.to_i)
     return if queries.count == 0
-    queries.each do |query|
+    queries.each { |query|
       oldlimit = query.People.to_i
       newlimit = @irc.people_in_channel query.Channel
       newlimit = newlimit.to_i
@@ -113,9 +113,7 @@ class LimitServCore
 
         puts "Channel List Before Checking - #{@channellist}"
 
-        @channellist.each do |channel|
-          return if channel == query.Channel
-        end
+        @channellist.each { |channel| return if channel == query.Channel }
 
         @channellist.push(query.Channel)
 
@@ -154,7 +152,7 @@ class LimitServCore
           @irc.privmsg @client_sid, @config["debug-channels"]["limitserv"], "NEW LIMIT: #{query.Channel} - #{newlimit}, Old Limit - #{oldlimit}, Offset: #{calc}, Actual Count: #{currentcount}"
         end
       end
-    end
+    }
     LimitServ_Channel.connection.disconnect!
   end
 
@@ -184,13 +182,13 @@ class LimitServCore
       LimitServ_Channel.establish_connection(@config["connections"]["databases"]["test"])
       queries = LimitServ_Channel.all
       return if queries.count == 0
-      queries.each do |query|
+      queries.each { |query|
         LimitServ_Channel.connection.execute("UPDATE `limit_serv_channels` SET `People` = '#{query.People}', `Time` = '#{Time.now.to_i}' WHERE `Channel` = '#{query.Channel}';")
         puts "Updated MySQL"
         @irc.client_set_mode @client_sid, "#{query.Channel} -l"
         puts "Updated Channel Mode"
         @irc.privmsg @client_sid, @config["debug-channels"]["limitserv"], "[!NUKE!] - #{query.Channel}"
-      end
+      }
 
     when "request"
       return @irc.notice @client_sid, target, "[ERROR] No chatroom was specified." if hash["parameters"].nil?
