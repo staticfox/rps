@@ -18,6 +18,25 @@ class ModuleServClient
     }
   end
 
+  def sendto_debug message
+    data = message.split("\n")
+    if data.nil?
+      message.scan(/.{1,500}/m).each { |x| @irc.notice @client_sid, @config["debug-channels"]["moduleserv"], x }
+    else
+      data.each { |d|
+        if d.is_a? String
+          d.scan(/.{1,500}/m).each { |x| @irc.notice @client_sid, @config["debug-channels"]["moduleserv"], x }
+        else
+          d.each { |f| f.scan(/.{1,500}/m).each { |x| @irc.notice @client_sid, @config["debug-channels"]["moduleserv"], x } }
+        end
+      }
+    end
+  end
+
+  def wallop_problem message
+    @irc.wallop @client_sid, message
+  end
+
    def get_stats
     GC.start
     num = `cat /proc/#{Process.pid}/status | grep "Threads"`.strip

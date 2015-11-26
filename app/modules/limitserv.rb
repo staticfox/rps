@@ -156,6 +156,16 @@ class LimitServCore
     LimitServ_Channel.connection.disconnect!
   end
 
+  def _internal_nuke
+    LimitServ_Channel.establish_connection(@config["connections"]["databases"]["test"])
+    queries = LimitServ_Channel.all
+    return if queries.count == 0
+    queries.each { |query|
+      LimitServ_Channel.connection.execute("UPDATE `limit_serv_channels` SET `People` = '#{query.People}', `Time` = '#{Time.now.to_i}' WHERE `Channel` = '#{query.Channel}';")
+      @irc.client_set_mode @client_sid, "#{query.Channel} -l"
+    }
+  end
+
   def handle_privmsg hash
     target = hash["from"]
 
