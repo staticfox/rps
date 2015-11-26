@@ -17,7 +17,7 @@ class BotG
   def gc parameters
     doc = Mechanize.new.get("http://173.194.115.72/search?q=#{url_encode(parameters)}")
     result = doc.search("//h2[@class='r']").inner_text
-    return "No Result Found." if result == ""
+    return "No Result Found." if result.empty?
     return result
   end
 
@@ -25,11 +25,9 @@ class BotG
     data = Google::Search::Web.new(:query => url_encode(parameters))
     array = []
 
-    data.each do |result|
-        array.push(result)
-    end
+    data.each { |result| array.push(result) }
 
-    return "#{array[0].title} - #{array[0].uri}" if !array[0].nil?
+    return "#{array[0].title} - #{array[0].uri}" if array[0]
     return "No Result Found."
   end
 

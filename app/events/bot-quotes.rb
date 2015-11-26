@@ -17,7 +17,9 @@ class BotQuotes
     target = hash["target"]
     target = hash["from"] if target == @client_sid
 
-    if ["!q", "!quote"].include? hash["command"].downcase and target.include?("#")
+    return if !target.include?("#")
+
+    if ["!q", "!quote"].include? hash["command"].downcase
       cp = hash["parameters"].split(' ') if !hash["parameters"].nil?
       if cp.nil?
         cp = []
@@ -91,8 +93,6 @@ class BotQuotes
         @irc.privmsg @client_sid, target, "[QUOTE] Unknown parameter"
 
       end
-
-      #@irc.privmsg @client_sid, target, "Received the !q command with these parameters. #{cp}"
     end
   end
 

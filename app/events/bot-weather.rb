@@ -38,7 +38,9 @@ class BotWeather
     target = hash["target"]
     target = hash["from"] if hash["target"] == @client_sid
 
-    if ["!weather", "!w"].include? hash["command"].downcase and target.include?("#")
+    return if !target.include?("#")
+
+    if ["!weather", "!w"].include? hash["command"].downcase
       run(hash["parameters"]).each do |line|
         @irc.privmsg @client_sid, target, line
       end
