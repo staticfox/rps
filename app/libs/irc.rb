@@ -73,7 +73,7 @@ class IRCLib
 
   def get_uid_object uid
     User.establish_connection(@db)
-    user = User.connection.select_all("SELECT `UModes` FROM `users` WHERE `UID` = '#{uid}';")
+    user = User.connection.select_all("SELECT * FROM `users` WHERE `UID` = '#{uid}';")
 
     user.each { |info|
       User.connection.disconnect!
@@ -109,6 +109,7 @@ class IRCLib
 
   def get_nick_from_uid uid
     uid_object = get_uid_object uid
+    puts "uid_object is #{uid_object} from uid #{uid}"
     return false if !uid_object
 
     return uid_object["Nick"]
