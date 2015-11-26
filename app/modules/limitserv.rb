@@ -161,9 +161,17 @@ class LimitServCore
 
     case hash["command"].downcase
     when "help"
+      # TODO
+      unless hash["parameters"].nil?
+        @irc.notice @client_sid, target, "***** LimitServ Help *****"
+        @irc.notice @client_sid, target, "Extended help not implemented yet."
+        @irc.notice @client_sid, target, "***** End of Help *****"
+        return
+      end
+
       @irc.notice @client_sid, target, "***** LimitServ Help *****"
       @irc.notice @client_sid, target, "LimitServ allows channel owners to limit the amount of joins that happen in certain amount of time. This is to prevent join floods."
-      #@irc.notice @client_sid, target, "For more info a command, type '/msg LimitServ help <command>' (without the quotes) for more information."
+      @irc.notice @client_sid, target, "For more info a command, type '/msg LimitServ help <command>' (without the quotes) for more information."
       @irc.notice @client_sid, target, "The following commands are available:"
       @irc.notice @client_sid, target, "LIST            List channels that LimitServ monitors." if @irc.is_oper_uid target
       @irc.notice @client_sid, target, "REQUEST         Request LimitServ to protect a channel from join floods."
