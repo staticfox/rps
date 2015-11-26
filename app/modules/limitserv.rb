@@ -162,7 +162,8 @@ class LimitServCore
     target = hash["from"]
     @irc.privmsg @client_sid, target, "This is only a test." if hash["command"] == "!test"
 
-    if hash["command"].downcase == "help"
+    case hash["command"].downcase
+    when "help"
       @irc.notice @client_sid, target, "***** LimitServ Help *****"
       @irc.notice @client_sid, target, "LimitServ allows channel owners to limit the amount of joins that happen in certain amount of time. This is to prevent join floods."
       #@irc.notice @client_sid, target, "For more info a command, type '/msg LimitServ help <command>' (without the quotes) for more information."
@@ -173,23 +174,12 @@ class LimitServCore
       @irc.notice @client_sid, target, "NUKE            Unsets all channel limits where LimitServ lives." if @irc.is_oper_uid target
       @irc.notice @client_sid, target, "***** End of Help *****"
       @irc.notice @client_sid, target, "If you're having trouble or you need additional help, you may want to join the help channel #help."
-    end
 
-    if hash["command"].downcase == "list"
-      if !@irc.is_oper_uid target
-        @irc.notice @client_sid, target, "[ERROR] You must be an oper to use this command."
-        return
-      end
-      stats_channels.each do |line|
-        @irc.notice @client_sid, target, line
-      end
-    end
-
-    if hash["command"].downcase == "nuke"
-      if !@irc.is_oper_uid target
-        @irc.notice @client_sid, target, "[ERROR] You must be an oper to use this command."
-        return
-      end
+    when "list"
+      return @irc.notice @client_sid, target, "[ERROR] You must be an oper to use this command." if !@irc.is_oper_uid target
+      stats_channels.each { |line| @irc.notice @client_sid, target, line }
+    when "nuke"
+      return @irc.notice @client_sid, target, "[ERROR] You must be an oper to use this command." if !@irc.is_oper_uid target
       LimitServ_Channel.establish_connection(@config["connections"]["databases"]["test"])
       queries = LimitServ_Channel.all
       return if queries.count == 0
@@ -200,10 +190,7 @@ class LimitServCore
         puts "Updated Channel Mode"
         @irc.privmsg @client_sid, @config["debug-channels"]["limitserv"], "[!NUKE!] - #{query.Channel}"
       end
-    end
-
-
-    if hash["command"].downcase == "request"
+    when "request"
       if hash["parameters"].nil?
         @irc.notice @client_sid, target, "[ERROR] No chatroom was specified."
         return
@@ -229,9 +216,8 @@ class LimitServCore
       @irc.client_join_channel @client_sid, hash["parameters"]
       @irc.client_set_mode @client_sid, "#{hash["parameters"]} +o #{@client_sid}"
       @irc.privmsg @client_sid, @config["debug-channels"]["limitserv"], "REQUEST: #{hash["parameters"]} - (#{@irc.get_nick_from_uid(target)})#{"[OPER Override]" if @irc.is_oper_uid target and !@irc.is_chan_founder hash["parameters"], target}"
-    end
 
-    if hash["command"].downcase == "remove"
+    when "remove"
       if hash["parameters"].nil?
         @irc.notice @client_sid, target, "[ERROR] No chatroom was specified."
         return
@@ -256,6 +242,8 @@ class LimitServCore
       @irc.notice @client_sid, target, "[SUCCESS] #{hash["parameters"]} will not be monitored by LimitServ."
       @irc.client_part_channel @client_sid, hash["parameters"]
       @irc.privmsg @client_sid, @config["debug-channels"]["limitserv"], "REMOVED: #{hash["parameters"]} - (#{@irc.get_nick_from_uid(target)})#{"[OPER Override]" if @irc.is_oper_uid target and !@irc.is_chan_founder hash["parameters"], target}"
+    else
+      @irc.notice @client_sid, target, "#{hash["command"].upcase} is an unknown command."
     end
   end
 
