@@ -17,7 +17,7 @@ class BotQuotes
     target = hash["target"]
     target = hash["from"] if target == @client_sid
 
-    if hash["command"].downcase == "!q" and target.include?("#")
+    if ["!q", "!quote"].include? hash["command"].downcase and target.include?("#")
       cp = hash["parameters"].split(' ') if !hash["parameters"].nil?
       if cp.nil?
         cp = []

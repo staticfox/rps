@@ -85,11 +85,11 @@ class IRCLib
 
   def get_nick_object nick
     User.establish_connection(@db)
-    user = User.connection.select_all("SELECT `UID` FROM `users` WHERE `Nick` = '#{nick}';")
+    user = User.connection.select_all("SELECT * FROM `users` WHERE `Nick` = '#{nick}';")
 
     user.each { |info|
     User.connection.disconnect!
-      return info["UID"]
+      return info
     }
 
     return false

@@ -36,8 +36,12 @@ class BotG
   def handle_privmsg hash
     target = hash["target"]
     target = hash["from"] if target == @client_sid
-    @irc.privmsg @client_sid, target, "Google Calculator: #{gc(hash["parameters"])}" if hash["command"].downcase == "!calc"
-    @irc.privmsg @client_sid, target, "Google Search: #{gs(hash["parameters"])}" if hash["command"].downcase == "!g"
+    case hash["command"].downcase
+    when "!calc"
+      @irc.privmsg @client_sid, target, "Google Calculator: #{gc(hash["parameters"])}"
+    when "!g", "!google"
+      @irc.privmsg @client_sid, target, "Google Search: #{gs(hash["parameters"])}"
+    end
   end
 
   def init e, m, c, d
