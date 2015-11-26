@@ -67,10 +67,17 @@ class BotClient
 
     if hash["command"].downcase == "help"
       me_user_notice target, "***** Bot Help *****"
-      me_user_notice target, "Bot allows channel owners to limit the amount of joins that happen in certain amount of time. This is to prevent join floods."
+      me_user_notice target, "Bot is a utility bot that adds functionality to your channel."
       me_user_notice target, "The following commands are available:"
       me_user_notice target, "REQUEST                   Request Bot for your channel."
       me_user_notice target, "REMOVE                    Remove Bot from your channel."
+      me_user_notice target, "***** In Channel Commands *****"
+      me_user_notice target, "!w <zip/city, state>      Displays the current weather conditions."
+      me_user_notice target, "!g <google search>        Searches google for what you specified."
+      me_user_notice target, "!q                        Displays a random quote from your channel."
+      me_user_notice target, "!q <add>                  Adds a quote."
+      me_user_notice target, "!q <del> <number>         Delete (number)'s quote from the databases."
+      me_user_notice target, "\x02NOTE\x02 !q is an alias of !quote, !w is an alias of !weather, !g is an alias of !google"
       me_user_notice target, "***** End of Help *****"
       me_user_notice target, "If you're having trouble or you need additional help, you may want to join the help channel #help."
     end
