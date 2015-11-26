@@ -63,7 +63,7 @@ class BotClient
     target = hash["target"]
     target = hash["from"] if target == @client_sid
 
-    return if target != @client_sid
+    return if hash["target"] != @client_sid
 
     if hash["command"].downcase == "help"
       me_user_notice target, "***** Bot Help *****"
