@@ -158,7 +158,6 @@ class LimitServCore
 
   def handle_privmsg hash
     target = hash["from"]
-    @irc.privmsg @client_sid, target, "This is only a test." if hash["command"] == "!test"
 
     case hash["command"].downcase
     when "help"
