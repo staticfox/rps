@@ -24,7 +24,8 @@ class BotQuotes
         cp.push("")
       end
 
-      if cp[0].downcase == "add"
+      case cp[0].downcase
+      when "add"
         (@irc.privmsg @client_sid, target, "You need to be a halfop or higher to add quotes into the database."; return) if !@irc.is_chan_founder(target, hash["from"]) and !@irc.is_chan_admin(target, hash["from"]) and !@irc.is_chan_op(target, hash["from"]) and !@irc.is_chan_halfop(target, hash["from"])
         Quote.establish_connection(@config["connections"]["databases"]["test"])
         quote = Quote.new
@@ -35,9 +36,8 @@ class BotQuotes
         quote.save
         Quote.connection.disconnect!
         @irc.privmsg @client_sid, target, "Quote Saved!"
-      end
 
-      if cp[0].downcase == "del"
+      when "del"
         (@irc.privmsg @client_sid, target, "You need to be a founder remove quotes from the database."; return) if !@irc.is_chan_founder(target, hash["from"])
         Quote.establish_connection(@config["connections"]["databases"]["test"])
         query = Quote.where('ID = ? AND Channel = ?', cp[1], target)
@@ -51,9 +51,8 @@ class BotQuotes
         query.delete_all
         @irc.privmsg @client_sid, target, "Deleted quote ID ##{cp[1]}."
         Quote.connection.disconnect!
-      end
 
-      if cp[0].downcase == "search"
+      when "search"
         Quote.establish_connection(@config["connections"]["databases"]["test"])
         query = Quote.where('Channel = ? AND Quote LIKE ?', target, "%#{cp[1]}%")
 
@@ -71,9 +70,8 @@ class BotQuotes
         end
         Quote.connection.disconnect!
         end
-      end
 
-      if cp[0] == ""
+      when ""
         Quote.establish_connection(@config["connections"]["databases"]["test"])
         query = Quote.where('Channel = ?', target).order("RAND()").first
 
@@ -88,6 +86,10 @@ class BotQuotes
         time = Time.at(query.Time.to_i).strftime("%m/%d/%y @ %-l:%M %p Eastern")
         @irc.privmsg @client_sid, target, "ID: ##{query.ID} - Submitted By: #{query.Person} - #{time} - #{query.Quote}"
         Quote.connection.disconnect!
+
+      else
+        @irc.privmsg @client_sid, target, "[QUOTE] Unknown parameter"
+
       end
 
       #@irc.privmsg @client_sid, target, "Received the !q command with these parameters. #{cp}"
