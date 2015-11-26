@@ -263,19 +263,19 @@ class IRCMsg
           handle_numeric name, sock, data, m.match(data)[1]
         end
 
-        handle_chat name, sock, data if data.include?(" PRIVMSG ") || data.include?(" NOTICE ")
-        handle_ping name, sock, data if data.include?(" PING ")
-        handle_sid name, sock, data if data.include?(" SID ")
-        handle_euid name, sock, data if data.include?(" EUID ")
-        handle_sjoin name, sock, data if data.include?(" SJOIN ")
-        handle_quit name, sock, data if data.include?(" QUIT ")
-        handle_join name, sock, data if data.include?(" JOIN ") and !data.include?(" SJOIN ")
-        handle_part name, sock, data if data.include?(" PART ")
-        handle_tmode name, sock, data if data.include?(" TMODE ")
+        handle_chat    name, sock, data if data.include?(" PRIVMSG ") || data.include?(" NOTICE ")
+        handle_ping    name, sock, data if data.include?(" PING ") || data.include?("PING ")
+        handle_sid     name, sock, data if data.include?(" SID ")
+        handle_euid    name, sock, data if data.include?(" EUID ")
+        handle_sjoin   name, sock, data if data.include?(" SJOIN ")
+        handle_quit    name, sock, data if data.include?(" QUIT ")
+        handle_join    name, sock, data if data.include?(" JOIN ") and !data.include?(" SJOIN ")
+        handle_part    name, sock, data if data.include?(" PART ")
+        handle_tmode   name, sock, data if data.include?(" TMODE ")
         handle_chghost name, sock, data if data.include?(" CHGHOST ")
-        handle_nick name, sock, data if data.include?(" NICK ")
-        handle_kick name, sock, data if data.include?(" KICK ")
-        handle_mode name, sock, data if data.include?(" MODE ")
+        handle_nick    name, sock, data if data.include?(" NICK ")
+        handle_kick    name, sock, data if data.include?(" KICK ")
+        handle_mode    name, sock, data if data.include?(" MODE ")
       end
     end
   end
