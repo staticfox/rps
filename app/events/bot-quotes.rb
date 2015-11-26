@@ -15,9 +15,7 @@ class BotQuotes
 
   def handle_privmsg hash
     target = hash["target"]
-    target = hash["from"] if hash["target"] == @client_sid
-    #@irc.privmsg @client_sid, target, "This is only a test." if hash["command"].downcase == "!test"
-    #@irc.privmsg @client_sid, "Ryan", "#{hash['from']} is an oper." if @irc.is_oper_uid hash["from"]
+    target = hash["from"] if target == @client_sid
 
     if hash["command"].downcase == "!q" and target.include?("#")
       cp = hash["parameters"].split(' ') if !hash["parameters"].nil?
@@ -79,15 +77,13 @@ class BotQuotes
         Quote.establish_connection(@config["connections"]["databases"]["test"])
         query = Quote.where('Channel = ?', target).order("RAND()").first
 
-        #puts query.methods
+        if query.nil?
+          @irc.privmsg @client_sid, target, "No quotes could be found for #{target}."
+          Quote.connection.disconnect!
+          return
+        end
 
-        #if query.size == 0
-        #    @irc.privmsg @client_sid, target, "No quotes could be found for #{target}."
-        #    Quote.connection.disconnect!
-        #    return
-        #end
-
-        return if query.nil? or query.Time.nil?
+        return if query.Time.nil?
 
         time = Time.at(query.Time.to_i).strftime("%m/%d/%y @ %-l:%M %p Eastern")
         @irc.privmsg @client_sid, target, "ID: ##{query.ID} - Submitted By: #{query.Person} - #{time} - #{query.Quote}"

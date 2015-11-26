@@ -14,10 +14,6 @@ class LimitServClient
 
   def handle_privmsg hash
     @e.Run "LimitServ-Chat", hash
-    #target = hash["target"]
-    #target = hash["from"] if hash["target"] == @client_sid
-    #@irc.privmsg @client_sid, target, "This is only a test." if hash["command"] == "!test"
-    #@irc.privmsg @client_sid, "Ryan", "#{hash['from']} is an oper." if @irc.is_oper_uid hash["from"]
   end
 
   def init e, m, c, d

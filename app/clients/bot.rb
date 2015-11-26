@@ -58,18 +58,15 @@ class BotClient
   def handle_privmsg hash
     @e.Run "Bot-Chat", hash
     target = hash["target"]
-    target = hash["from"] if hash["target"] == @client_sid
+    target = hash["from"] if target == @client_sid
     @irc.privmsg @client_sid, target, "This is only a test." if hash["command"] == "!test"
-    #@irc.privmsg @client_sid, "Ryan", "#{hash['from']} is an oper." if @irc.is_oper_uid hash["from"]
 
-    return if hash["target"] != @client_sid
+    return if target != @client_sid
 
     if hash["command"].downcase == "help"
       @irc.notice @client_sid, target, "***** Bot Help *****"
       @irc.notice @client_sid, target, "Bot allows channel owners to limit the amount of joins that happen in certain amount of time. This is to prevent join floods."
-      #@irc.notice @client_sid, target, "For more info a command, type '/msg LimitServ help <command>' (without the quotes) for more information."
       @irc.notice @client_sid, target, "The following commands are available:"
-      #@irc.notice @client_sid, target, "LIST                      List channels that LimitServ monitors." if @irc.is_oper_uid target
       @irc.notice @client_sid, target, "REQUEST                   Request Bot for your channel."
       @irc.notice @client_sid, target, "REMOVE                    Remove Bot from your channel."
       @irc.notice @client_sid, target, "***** End of Help *****"

@@ -4,7 +4,6 @@ class Modules
   $totalmodules = []
 
   def LoadByNameOfFile file, classtitle
-
     begin
       puts "Loading - #{file} - #{classtitle}"
       load file if File.file?(file)
@@ -25,7 +24,6 @@ class Modules
       return false
     end
   end
-
 
   def UnloadByClassName classname
     count = 1

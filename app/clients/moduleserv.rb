@@ -32,14 +32,12 @@ class ModuleServClient
 
   def handle_privmsg hash
     target = hash["target"]
-    target = hash["from"] if hash["target"] == @client_sid
-    @irc.privmsg @client_sid, target, "Test" if hash["command"] == "!test" and hash["target"] == "#debug"
+    target = hash["from"] if target == @client_sid
+    @irc.privmsg @client_sid, target, "Test" if hash["command"] == "!test" and target == "#debug"
 
-    #@irc.privmsg @client_sid, target, "#{hash["from"]}: I see you're not away." if hash["command"] == "!notafk"
+    @irc.privmsg @client_sid, target, get_stats if hash["command"] == "!status" and target == "#debug"
 
-    @irc.privmsg @client_sid, target, get_stats if hash["command"] == "!status" and hash["target"] == "#debug"
-
-    if hash["command"] == "!module" and hash["target"] == "#debug"
+    if hash["command"] == "!module" and target == "#debug"
       cp = hash["parameters"].split(' ') if !hash["parameters"].nil?
 
       if cp.nil?
