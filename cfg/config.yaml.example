@@ -42,6 +42,15 @@ connections:
       pool: 10
 
 debug-channels:
-  limitserv: '#rps-debug'
-  bot:  '#rps-debug'
-  moduleserv: '#rps-debug'
+  limitserv: '#chan1'
+  bot: '#chan2'
+  moduleserv: '#chan3'
+
+
+control:
+  - channel: "#chan1"
+
+idle:
+  - channel: "#chan1"
+  - channel: "#chan2"
+  - channel: "#chan3"

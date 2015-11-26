@@ -9,15 +9,13 @@ class ModuleServClient
   end
 
   def connect_client
+    idle_channels = []
+    @config["idle"].each { |i| idle_channels << i["channel"] }
     @irc.add_client @parameters["sid"], "#{@client_sid}", "ModuleServ", "+ioS", "ModuleServ", "Serv1-Bot.GeeksIRC.net", "ModuleServ"
-    sleep 1
-    @irc.client_join_channel @client_sid, "#care"
-    @irc.client_join_channel @client_sid, "#services"
-    @irc.client_join_channel @client_sid, "#debug"
-    sleep 1
-    @irc.client_set_mode @client_sid, "#care +o ModuleServ"
-    @irc.client_set_mode @client_sid, "#services +o ModuleServ"
-    @irc.client_set_mode @client_sid, "#debug +o ModuleServ"
+    idle_channels.each { |i|
+       @irc.client_join_channel @client_sid, i
+       @irc.client_set_mode @client_sid, "#{i} +o ModuleServ"
+    }
   end
 
    def get_stats
@@ -33,11 +31,13 @@ class ModuleServClient
   def handle_privmsg hash
     target = hash["target"]
     target = hash["from"] if target == @client_sid
-    @irc.privmsg @client_sid, target, "Test" if hash["command"] == "!test" and target == "#debug"
 
-    @irc.privmsg @client_sid, target, get_stats if hash["command"] == "!status" and target == "#debug"
+    control_channels = []
+    @config["control"].each { |c| control_channels << c["channel"] }
 
-    if hash["command"] == "!module" and target == "#debug"
+    @irc.privmsg @client_sid, target, get_stats if hash["command"] == "!status" and control_channels.include? target
+
+    if hash["command"] == "!module" and target == control_channels.include? target
       cp = hash["parameters"].split(' ') if !hash["parameters"].nil?
 
       if cp.nil?
@@ -72,15 +72,15 @@ class ModuleServClient
     @c = c
     @d = d
 
-    config = c.Get
-    @parameters = config["connections"]["clients"]["irc"]["parameters"]
+    @config = c.Get
+    @parameters = @config["connections"]["clients"]["irc"]["parameters"]
     @client_sid = "#{@parameters["sid"]}000001"
     @initialized = false
 
     @e.on_event do |type, name, sock|
       if type == "IRCClientInit"
-        config = @c.Get
-        @irc = IRCLib.new name, sock, config["connections"]["databases"]["test"]
+        @config = @c.Get
+        @irc = IRCLib.new name, sock, @config["connections"]["databases"]["test"]
         connect_client
         @initialized = true
       end
@@ -89,8 +89,8 @@ class ModuleServClient
     @e.on_event do |type, hash|
       if type == "IRCChat"
         if !@initialized
-          config = @c.Get
-          @irc = IRCLib.new hash["name"], hash["sock"], config["connections"]["databases"]["test"]
+          @config = @c.Get
+          @irc = IRCLib.new hash["name"], hash["sock"], @config["connections"]["databases"]["test"]
           connect_client
           @initialized = true
           sleep 1
