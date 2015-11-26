@@ -37,7 +37,7 @@ class ModuleServClient
 
     @irc.privmsg @client_sid, target, get_stats if hash["command"] == "!status" and control_channels.include? target
 
-    if hash["command"] == "!module" and target == control_channels.include? target
+    if hash["command"] == "!module" and control_channels.include? target
       cp = hash["parameters"].split(' ') if !hash["parameters"].nil?
 
       if cp.nil?
