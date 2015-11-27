@@ -24,8 +24,9 @@ class BotClient
   def is_channel_signedup channel
     BotChannel.establish_connection(@config["connections"]["databases"]["test"])
     query = BotChannel.where('Channel = ?', channel)
+    data = query.count
     BotChannel.connection.disconnect!
-    return true if query.count == 1
+    return true if data == 1
     return false
   end
 
