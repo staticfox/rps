@@ -96,11 +96,7 @@ class LimitServCore
   end
 
   def burst_data data
-    if data[4].include? 'l'
-      setval = data[5].to_i
-    else
-      setval = 0
-    end
+    setval = data[5].to_i if data[4].include? 'l' else setval = 0
     LimitServ_Channel.establish_connection(@config["connections"]["databases"]["test"])
     LimitServ_Channel.connection.execute("UPDATE `limit_serv_channels` SET `People` = '#{setval}', `Time` = '#{Time.now.to_i}' WHERE `Channel` = '#{data[3].downcase}';")
     LimitServ_Channel.connection.disconnect!
