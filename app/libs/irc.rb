@@ -92,7 +92,7 @@ class IRCLib
     user = User.connection.select_all("SELECT * FROM `users` WHERE `Nick` = '#{nick}';")
 
     user.each { |info|
-    User.connection.disconnect!
+      User.connection.disconnect!
       return info
     }
 
