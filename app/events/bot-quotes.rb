@@ -88,7 +88,7 @@ class BotQuotes
 
       when /\A\d+\z/
         Quote.establish_connection(@config["connections"]["databases"]["test"])
-        query = Quote.where(id: cp[0]).first
+        query = Quote.where(id: cp[0], channel: target).first
 
         if query.nil?
           @irc.privmsg @client_sid, target, "[QUOTE] ID #{cp[0]} does not exist."
