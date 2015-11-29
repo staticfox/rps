@@ -71,9 +71,8 @@ class IRCMsg
   end
 
   def handle_sjoin name, sock, data
-    users = data.split(':')
-
-    data = data.split(' ')
+    users = data.split(':')[-1]
+    data  = data.split(' ')
 
     Channel.establish_connection(@config["connections"]["databases"]["test"])
     channel = Channel.new
@@ -84,8 +83,8 @@ class IRCMsg
     channel.save
     Channel.connection.disconnect!
 
-    if !users[2].nil? then
-      users = users[2].split(' ')
+    if !users.nil? then
+      users = users.split(' ')
       UserInChannel.establish_connection(@config["connections"]["databases"]["test"])
       users.each do |user|
         modes = ""
