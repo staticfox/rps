@@ -17,24 +17,21 @@ class BotQuotes
     target = hash["target"]
     target = hash["from"] if target == @client_sid
 
-    return if !target.include?("#")
+    return if !['#', '&'].include? target[0]
 
     if ["!q", "!quote"].include? hash["command"].downcase
-      cp = hash["parameters"].split(' ') if !hash["parameters"].nil?
-      if cp.nil?
-        cp = []
-        cp.push("")
-      end
+      cp = hash["parameters"]
+      cp = [""] if cp.empty?
 
       case cp[0].downcase
       when "add"
         (@irc.privmsg @client_sid, target, "You need to be a halfop or higher to add quotes into the database."; return) if !@irc.is_chan_founder(target, hash["from"]) and !@irc.is_chan_admin(target, hash["from"]) and !@irc.is_chan_op(target, hash["from"]) and !@irc.is_chan_halfop(target, hash["from"])
         Quote.establish_connection(@config["connections"]["databases"]["test"])
-        quote = Quote.new
+        quote         = Quote.new
         quote.Channel = target
-        quote.Person = @irc.get_nick_from_uid(hash["from"])
-        quote.Quote = hash["parameters"][4..-1]
-        quote.Time = Time.now.to_i - 18000
+        quote.Person  = @irc.get_nick_from_uid(hash["from"])
+        quote.Quote   = hash["parameters"].join(' ')[4..-1]
+        quote.Time    = Time.now.to_i - 18000
         quote.save
         Quote.connection.disconnect!
         @irc.privmsg @client_sid, target, "Quote Saved!"
