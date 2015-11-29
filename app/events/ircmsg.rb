@@ -22,24 +22,14 @@ class IRCMsg
   end
 
   def handle_chat name, sock, line
-    fullmessage = line.split(':')
-    fullmessage = fullmessage[2]
-    return if fullmessage.nil?
-    command = fullmessage.split(' ')
-    command = command[0]
+    irc_split  = line.split(/^(?:[:](\S+) )?(\S+)(?: (?!:)(.+?))?(?: [:](.+))?$/)
+    person     = irc_split[1]
+    msgtype    = irc_split[2]
+    target     = irc_split[3]
+    command    = irc_split[4].split(' ')[0]
     return if command.nil?
-    commandlength = command.length
-    commandlength += 1
-    parameters = fullmessage[commandlength..-1]
-    if parameters != '' && !parameters.nil?
-      if parameters.include?(' ') then parameters.split(' ') end
-    end
-
-    stuff = line.split(':')
-    stuff = stuff[1].split(' ')
-    person = stuff[0]
-    msgtype = stuff[1]
-    target = stuff[2]
+    parameters = irc_split[4].split(' ')[1..-1]
+    parameters = parameters.join.to_s if parameters.length < 1 or parameters.empty? or parameters.nil?
 
     hash = {"name" => name, "sock" => sock, "msgtype" => msgtype, "from" => person, "target" => target, "command" => command, "parameters" => parameters}
     @e.Run "IRCChat", hash
