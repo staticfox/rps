@@ -11,6 +11,7 @@ class BotWeather
   end
 
   def run parameters
+    parameters = parameters.join(' ')
     array = []
     data = @w_api.conditions_for(parameters)
     data = data["current_observation"]
