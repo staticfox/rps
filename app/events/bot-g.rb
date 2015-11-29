@@ -34,6 +34,14 @@ class BotG
   def handle_privmsg hash
     target = hash["target"]
     target = hash["from"] if target == @client_sid
+
+    return if !['#', '&'].include? target[0]
+
+    if hash["parameters"].empty?
+      @irc.notice @client_sid, hash["from"], "#{hash["command"][1..-1]} requires more parameters"
+      return
+    end
+
     case hash["command"].downcase
     when "!calc"
       @irc.privmsg @client_sid, target, "Google Calculator: #{gc(hash["parameters"])}"
