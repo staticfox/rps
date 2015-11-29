@@ -34,7 +34,7 @@ class BotQuotes
         quote.Time    = Time.now.to_i - 18000
         quote.save
         Quote.connection.disconnect!
-        @irc.privmsg @client_sid, target, "Quote Saved!"
+        @irc.privmsg @client_sid, target, "[QUOTE] Saved quote ##{quote.ID}!"
 
       when "del"
         (@irc.privmsg @client_sid, target, "You need to be a founder remove quotes from the database."; return) if !@irc.is_chan_founder(target, hash["from"])
