@@ -64,7 +64,7 @@ class BotQuotes
         Thread.new do
         query.each do |row|
           time = Time.at(row.Time.to_i).strftime("%m/%d/%y @ %-l:%M %p Eastern")
-          @irc.privmsg @client_sid, target, "ID: ##{row.ID} - Submitted By: #{row.Person} - #{time} - #{row.Quote}"
+          @irc.privmsg @client_sid, target, "[QUOTE] ##{row.ID}: Submitted By: #{row.Person} - #{time} - #{row.Quote}"
           sleep 0.4
         end
         Quote.connection.disconnect!
@@ -83,7 +83,23 @@ class BotQuotes
         return if query.Time.nil?
 
         time = Time.at(query.Time.to_i).strftime("%m/%d/%y @ %-l:%M %p Eastern")
-        @irc.privmsg @client_sid, target, "ID: ##{query.ID} - Submitted By: #{query.Person} - #{time} - #{query.Quote}"
+        @irc.privmsg @client_sid, target, "[QUOTE] ##{row.ID}: Submitted By: #{row.Person} - #{time} - #{row.Quote}"
+        Quote.connection.disconnect!
+
+      when /\A\d+\z/
+        Quote.establish_connection(@config["connections"]["databases"]["test"])
+        query = Quote.where(id: cp[0]).first
+
+        if query.nil?
+          @irc.privmsg @client_sid, target, "[QUOTE] ID #{cp[0]} does not exist."
+          Quote.connection.disconnect!
+          return
+        end
+
+        return if query.Time.nil?
+
+        time = Time.at(query.Time.to_i).strftime("%m/%d/%y @ %-l:%M %p Eastern")
+        @irc.privmsg @client_sid, target, "[QUOTE] ##{row.ID}: Submitted By: #{row.Person} - #{time} - #{row.Quote}"
         Quote.connection.disconnect!
 
       else
