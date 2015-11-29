@@ -83,7 +83,7 @@ class BotQuotes
         return if query.Time.nil?
 
         time = Time.at(query.Time.to_i).strftime("%m/%d/%y @ %-l:%M %p Eastern")
-        @irc.privmsg @client_sid, target, "[QUOTE] ##{row.ID}: Submitted By: #{row.Person} - #{time} - #{row.Quote}"
+        @irc.privmsg @client_sid, target, "[QUOTE] ##{query.ID}: Submitted By: #{query.Person} - #{time} - #{query.Quote}"
         Quote.connection.disconnect!
 
       when /\A\d+\z/
@@ -99,7 +99,7 @@ class BotQuotes
         return if query.Time.nil?
 
         time = Time.at(query.Time.to_i).strftime("%m/%d/%y @ %-l:%M %p Eastern")
-        @irc.privmsg @client_sid, target, "[QUOTE] ##{row.ID}: Submitted By: #{row.Person} - #{time} - #{row.Quote}"
+        @irc.privmsg @client_sid, target, "[QUOTE] ##{query.ID}: Submitted By: #{query.Person} - #{time} - #{query.Quote}"
         Quote.connection.disconnect!
 
       else
