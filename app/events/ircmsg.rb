@@ -83,7 +83,7 @@ class IRCMsg
     channel.save
     Channel.connection.disconnect!
 
-    if !users.nil? then
+    if !users.nil? and !users.include? ' SJOIN '
       users = users.split(' ')
       UserInChannel.establish_connection(@config["connections"]["databases"]["test"])
       users.each do |user|
