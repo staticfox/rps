@@ -37,7 +37,8 @@ class BotG
 
     return if !['#', '&'].include? target[0]
 
-    if hash["parameters"].empty?
+    # FIXME
+    if hash["parameters"].empty? and ["!calc", "!g", "!google"].include? hash["command"].downcase
       @irc.notice @client_sid, hash["from"], "#{hash["command"][1..-1]} requires more parameters"
       return
     end
