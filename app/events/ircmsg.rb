@@ -52,23 +52,15 @@ class IRCMsg
     User.establish_connection(@config["connections"]["databases"]["test"])
 
     user = User.new
-      user.Nick = data[2]
-      user.Nick = "" if data[2].nil?
-      user.CTime = data[4]
-      user.CTime = "" if data[4].nil?
-      user.UModes = data[5][1..-1]
-      user.UModes = "" if data[5].nil?
-      user.Ident = data[6]
-      user.Ident = "" if data[6].nil?
-      user.CHost = data[7]
-      user.CHost = "" if data[7].nil?
-      user.IP = data[8]
-      user.IP = "" if data[8].nil?
-      user.UID = data[9]
-      user.UID = "" if data[9].nil?
-      user.Host = data[10]
-      user.Host = "" if data[10].nil?
-      @ircservers.each do |hash|
+    user.Nick   = data[2] ? data[2] : ""
+    user.CTime  = data[4] ? data[4] : ""
+    user.UModes = data[5][1..-1] ? data[5][1..-1] : ""
+    user.Ident  = data[6] ? data[6] : ""
+    user.CHost  = data[7] ? data[7] : ""
+    user.IP     = data[8] ? data[8] : ""
+    user.UID    = data[9] ? data[9] : ""
+    user.Host   = data[10] ? data[10] : ""
+    @ircservers.each do |hash|
       user.Server = hash["server"] if data[0][1..-1] == hash["SID"]
     end
 
