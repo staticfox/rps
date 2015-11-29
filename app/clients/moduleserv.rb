@@ -57,12 +57,8 @@ class ModuleServClient
     @irc.privmsg @client_sid, target, get_stats if hash["command"] == "!status" and control_channels.include? target
 
     if hash["command"] == "!module" and control_channels.include? target
-      cp = hash["parameters"].split(' ') if !hash["parameters"].nil?
-
-      if cp.nil?
-        cp = []
-        cp.push("")
-      end
+      cp = hash["parameters"]
+      cp = [""] if cp.empty?
 
       if cp[0] == "load"
         if !File.file?(cp[1]) || !cp[1].include?(".rb")

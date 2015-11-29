@@ -15,8 +15,11 @@ class IRCModules
     target = hash["nickname"] if !hash["target"].include?("#")
 
     if hash["command"] == "!module"
-      cp = hash["parameters"].split(' ')
-      if cp[0] == "load"
+      cp = hash["parameters"]
+      cp = [""] if cp.empty?
+
+      case cp[0].downcase
+      when "load"
         if !File.file?(cp[1]) || !cp[1].include?(".rb")
           send_chat "PRIVMSG", target, "[MODULE ERROR] Could not find file: #{cp[1]}", hash["name"], hash["sock"]
           return
@@ -26,12 +29,12 @@ class IRCModules
 
         send_chat "PRIVMSG", target, "[MODULE ERROR] Could not load file: #{cp[1]}", hash["name"], hash["sock"] if !result
         send_chat "PRIVMSG", target, "[MODULE] Loaded file '#{cp[1]}' with class '#{cp[2]}'", hash["name"], hash["sock"] if result
-      end
 
-      if cp[0] == "unload"
+      when "unload"
         result = @m.UnloadByClassName cp[1]
         send_chat "PRIVMSG", target, "[MODULE ERROR] Could not unload module: #{cp[1]} - Not loaded? Wrong module name?", hash["name"], hash["sock"] if !result
         send_chat "PRIVMSG", target, "[MODULE] Successfully unloaded #{cp[1]}", hash["name"], hash["sock"] if result
+
       end
 
       send_chat "PRIVMSG", target, "Received the !module command with these parameters. #{cp}", hash["name"], hash["sock"]
