@@ -39,9 +39,9 @@ class BotQuotes
       when "del"
         (@irc.privmsg @client_sid, target, "You need to be a founder remove quotes from the database."; return) if !@irc.is_chan_founder(target, hash["from"])
         Quote.establish_connection(@config["connections"]["databases"]["test"])
-        query = Quote.where('ID = ? AND Channel = ?', cp[1], target)
+        query = Quote.where(id: cp[1], channel: target)
 
-        if query.nil?
+        if query.count == 0
           @irc.privmsg @client_sid, target, "Quote ID #{cp[1]} does not exist for #{target}."
           Quote.connection.disconnect!
           return
@@ -55,7 +55,7 @@ class BotQuotes
         Quote.establish_connection(@config["connections"]["databases"]["test"])
         query = Quote.where('Channel = ? AND Quote LIKE ?', target, "%#{cp[1]}%")
 
-        if query.nil?
+        if query.count == 0
           @irc.privmsg @client_sid, target, "No quotes could be found for #{target}."
           Quote.connection.disconnect!
           return
@@ -72,7 +72,7 @@ class BotQuotes
 
       when ""
         Quote.establish_connection(@config["connections"]["databases"]["test"])
-        query = Quote.where('Channel = ?', target).order("RAND()").first
+        query = Quote.where(channel: target).order("RAND()").first
 
         if query.nil?
           @irc.privmsg @client_sid, target, "No quotes could be found for #{target}."
