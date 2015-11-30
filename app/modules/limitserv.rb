@@ -231,7 +231,7 @@ class LimitServCore
       return @irc.notice @client_sid, target, "[ERROR] This channel is not signed up for LimitServ." if !@assigned_channels.include? hash["parameters"]
       remove_channel hash["parameters"]
       @irc.notice @client_sid, target, "[SUCCESS] #{hash["parameters"]} will not be monitored by LimitServ."
-      @irc.client_part_channel @client_sid, hash["parameters"]
+      @irc.client_part_channel @client_sid, hash["parameters"], "#{@irc.get_nick_from_uid(@client_sid)} removed by #{@irc.get_nick_from_uid(target)}"
       @irc.privmsg @client_sid, @config["debug-channels"]["limitserv"], "REMOVED: #{hash["parameters"]} - (#{@irc.get_nick_from_uid(target)})#{"[OPER Override]" if @irc.is_oper_uid target and !@irc.is_chan_founder hash["parameters"], target}"
     else
       @irc.notice @client_sid, target, "#{hash["command"].upcase} is an unknown command."
