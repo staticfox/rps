@@ -21,21 +21,13 @@ class BotClient
     @irc.add_client @parameters["sid"], "#{@client_sid}", "Bot", "+ioS", "Bot", "GeeksIRC.net", "Bot"
   end
 
-  def is_channel_signedup channel
-    BotChannel.establish_connection(@config["connections"]["databases"]["test"])
-    query = BotChannel.where('Channel = ?', channel)
-    data = query.count
-    BotChannel.connection.disconnect!
-    return true if data == 1
-    return false
-  end
-
   def signup_channel channel
     BotChannel.establish_connection(@config["connections"]["databases"]["test"])
     query = BotChannel.new
     query.Channel = channel.downcase
     query.save
     BotChannel.connection.disconnect!
+    @assigned_channels << channel.downcase
   end
 
   def remove_channel channel
@@ -44,6 +36,7 @@ class BotClient
     (BotChannel.connection.disconnect!; return false) if query.count == 0
     query.delete_all
     BotChannel.connection.disconnect!
+    @assigned_channels.delete(channel.downcase)
     return true
   end
 
@@ -55,12 +48,18 @@ class BotClient
       @irc.client_join_channel @client_sid, query.Channel
       @irc.client_set_mode @client_sid, "#{query.Channel} +o #{@client_sid}"
       @irc.privmsg @client_sid, @config["debug-channels"]["bot"], "JOINED: #{query.Channel}"
+      @assigned_channels << query.Channel
     end
     BotChannel.connection.disconnect!
   end
 
   def handle_privmsg hash
-    @e.Run "Bot-Chat", hash
+
+    if @assigned_channels.include? hash["target"].downcase
+      @e.Run "Bot-Chat", hash
+      return
+    end
+
     target = hash["target"]
     target = hash["from"] if target == @client_sid
 
@@ -87,7 +86,7 @@ class BotClient
       return me_user_notice target, "[ERROR] No chatroom was specified." if hash["parameters"].empty?
       return me_user_notice target, "[ERROR] The channel does not exist on this network." if !@irc.does_channel_exist hash["parameters"]
       return me_user_notice target, "[ERROR] You must be founder of #{hash["parameters"]} in order to add Bot to the channel." if !@irc.is_chan_founder hash["parameters"], target and !@irc.is_oper_uid target
-      return me_user_notice target, "[ERROR] This channel is already signed up for Bot." if is_channel_signedup hash["parameters"]
+      return me_user_notice target, "[ERROR] This channel is already signed up for Bot." if @assigned_channels.include? hash["parameters"]
       signup_channel hash["parameters"]
       me_user_notice target, "[SUCCESS] Bot has joined #{hash["parameters"]}."
       @irc.client_join_channel @client_sid, hash["parameters"]
@@ -99,7 +98,7 @@ class BotClient
       return me_user_notice target, "[ERROR] No chatroom was specified." if hash["parameters"].empty?
       return me_user_notice target, "[ERROR] The channel does not exist on this network." if !@irc.does_channel_exist hash["parameters"]
       return me_user_notice target, "[ERROR] You must be founder of #{hash["parameters"]} in order to remove Bot from the channel." if !@irc.is_chan_founder hash["parameters"], target and !@irc.is_oper_uid target
-      return me_user_notice target, "[ERROR] This channel is not signed up for Bot." if !is_channel_signedup hash["parameters"]
+      return me_user_notice target, "[ERROR] This channel is not signed up for Bot." if !@assigned_channels.include? hash["parameters"]
 
       remove_channel hash["parameters"]
       me_user_notice target, "[SUCCESS] Bot has left #{hash["parameters"]}."
@@ -117,6 +116,8 @@ class BotClient
     @m = m
     @c = c
     @d = d
+
+    @assigned_channels = []
 
     @config = c.Get
     @parameters = @config["connections"]["clients"]["irc"]["parameters"]
