@@ -28,8 +28,7 @@ class IRCMsg
     target     = irc_split[3]
     command    = irc_split[4].split(' ')[0]
     return if command.nil?
-    parameters = irc_split[4].split(' ')[1..-1]
-    parameters = parameters.join.to_s if parameters.length < 1 or parameters.empty? or parameters.nil?
+    parameters = irc_split[4].split(' ')[1..-1].join(' ')
 
     hash = {"name" => name, "sock" => sock, "msgtype" => msgtype, "from" => person, "target" => target, "command" => command, "parameters" => parameters}
     @e.Run "IRCChat", hash

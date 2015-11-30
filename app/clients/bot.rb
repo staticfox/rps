@@ -84,7 +84,7 @@ class BotClient
       me_user_notice target, "If you're having trouble or you need additional help, you may want to join the help channel #help."
 
     when "request"
-      return me_user_notice target, "[ERROR] No chatroom was specified." if hash["parameters"].nil?
+      return me_user_notice target, "[ERROR] No chatroom was specified." if hash["parameters"].empty?
       return me_user_notice target, "[ERROR] The channel does not exist on this network." if !@irc.does_channel_exist hash["parameters"]
       return me_user_notice target, "[ERROR] You must be founder of #{hash["parameters"]} in order to add Bot to the channel." if !@irc.is_chan_founder hash["parameters"], target and !@irc.is_oper_uid target
       return me_user_notice target, "[ERROR] This channel is already signed up for Bot." if is_channel_signedup hash["parameters"]
@@ -96,7 +96,7 @@ class BotClient
       @irc.privmsg @client_sid, @config["debug-channels"]["bot"], "REQUEST: #{hash["parameters"]} - (#{@irc.get_nick_from_uid(target)}) [OPER Override]" if @irc.is_oper_uid target
 
     when "remove"
-      return me_user_notice target, "[ERROR] No chatroom was specified." if hash["parameters"].nil?
+      return me_user_notice target, "[ERROR] No chatroom was specified." if hash["parameters"].empty?
       return me_user_notice target, "[ERROR] The channel does not exist on this network." if !@irc.does_channel_exist hash["parameters"]
       return me_user_notice target, "[ERROR] You must be founder of #{hash["parameters"]} in order to remove Bot from the channel." if !@irc.is_chan_founder hash["parameters"], target and !@irc.is_oper_uid target
       return me_user_notice target, "[ERROR] This channel is not signed up for Bot." if !is_channel_signedup hash["parameters"]
