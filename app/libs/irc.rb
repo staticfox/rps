@@ -20,6 +20,22 @@ class IRCLib
   def add_client server_sid, sid, nick, modes, user, host, real
     @bots.each { |bot| return -1 if bot["nick"] == nick }
 
+    User.establish_connection(@db)
+
+    db_add          = User.new
+    db_add.Nick     = nick
+    db_add.CTime    = Time.now.to_i
+    db_add.UModes   = modes
+    db_add.Ident    = user
+    db_add.CHost    = host
+    db_add.IP       = "255.255.255.255"
+    db_add.UID      = sid
+    db_add.Host     = host
+    db_add.Server   = "rps"
+    db_add.NickServ = "User"
+    db_add.save
+    User.connection.disconnect!
+
     send_data @name, @sock, ":#{server_sid} EUID #{nick} 2 #{Time.now.to_i} #{modes} #{user} #{host} 0 #{sid} * * :#{real}\r\n"
 
     hash = {"name" => @name, "sock" => @sock, "nick" => nick, "user" => user, "host" => host, "sid" => sid, "server_sid" => server_sid, "real" => real, "modes" => modes}
