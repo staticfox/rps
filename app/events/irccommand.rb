@@ -20,7 +20,6 @@ class IRCCommand
       send_chat "PRIVMSG", target, "No help can be given. Sorry!", hash["name"], hash["sock"]
     end
 
-    send_chat "PRIVMSG", hash["target"], "It has definitely passed the test.", hash["name"], hash["sock"] if hash["command"] == "!test" && hash["target"] == "#rkhtech"
   end
 
   def init e, m, c, d

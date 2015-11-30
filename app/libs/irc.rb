@@ -71,8 +71,8 @@ class IRCLib
     UserInChannel.connection.disconnect!
   end
 
-  def client_part_channel sid, room
-    send_data @name, @sock, ":#{sid} PART #{room}\r\n"
+  def client_part_channel sid, room, reason = ""
+    send_data @name, @sock, ":#{sid} PART #{room} :#{reason}\r\n"
     UserInChannel.establish_connection(@db)
     userinchannel = UserInChannel.where("User = ? AND Channel = ?", sid, room)
     userinchannel.delete_all
