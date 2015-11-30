@@ -16,15 +16,6 @@ class LimitServCore
     sock.send string, 0
   end
 
-  def is_channel_signedup channel
-    LimitServ_Channel.establish_connection(@config["connections"]["databases"]["test"])
-    query = LimitServ_Channel.where('Channel = ?', channel)
-    return true if query.count == 1
-    LimitServ_Channel.connection.disconnect!
-    return false
-  end
-
-
   def signup_channel channel
     LimitServ_Channel.establish_connection(@config["connections"]["databases"]["test"])
     query = LimitServ_Channel.new
@@ -32,6 +23,7 @@ class LimitServCore
     query.People = @irc.people_in_channel channel
     query.Time = Time.now.to_i
     query.save
+    @assigned_channels << channel.downcase
     LimitServ_Channel.connection.disconnect!
   end
 
@@ -39,6 +31,7 @@ class LimitServCore
     LimitServ_Channel.establish_connection(@config["connections"]["databases"]["test"])
     query = LimitServ_Channel.where('Channel = ?', channel.downcase)
     return false if query.count == 0
+    @assigned_channels.delete(channel.downcase)
     query.delete_all
     @irc.client_set_mode @client_sid, "#{channel} -l"
     LimitServ_Channel.connection.disconnect!
@@ -53,6 +46,7 @@ class LimitServCore
       @irc.client_join_channel @client_sid, query.Channel
       @irc.client_set_mode @client_sid, "#{query.Channel} +o #{@client_sid}"
       @irc.privmsg @client_sid, @config["debug-channels"]["limitserv"], "JOINED: #{query.Channel}"
+      @assigned_channels << query.Channel
     }
     LimitServ_Channel.connection.disconnect!
   end
@@ -223,7 +217,7 @@ class LimitServCore
       return @irc.notice @client_sid, target, "[ERROR] No chatroom was specified." if hash["parameters"].empty?
       return @irc.notice @client_sid, target, "[ERROR] The channel does not exist on this network." if !@irc.does_channel_exist hash["parameters"]
       return @irc.notice @client_sid, target, "[ERROR] You must be founder of #{hash["parameters"]} in order to add LimitServ to the channel." if !@irc.is_chan_founder hash["parameters"], target and !@irc.is_oper_uid target
-      return @irc.notice @client_sid, target, "[ERROR] This channel is already signed up for LimitServ." if is_channel_signedup hash["parameters"]
+      return @irc.notice @client_sid, target, "[ERROR] This channel is already signed up for LimitServ." if @assigned_channels.include? hash["parameters"]
       signup_channel hash["parameters"]
       @irc.notice @client_sid, target, "[SUCCESS] #{hash["parameters"]} will now be monitored by LimitServ."
       @irc.client_join_channel @client_sid, hash["parameters"]
@@ -234,7 +228,7 @@ class LimitServCore
       return @irc.notice @client_sid, target, "[ERROR] No chatroom was specified." if hash["parameters"].empty?
       return @irc.notice @client_sid, target, "[ERROR] The channel does not exist on this network." if !@irc.does_channel_exist hash["parameters"]
       return @irc.notice @client_sid, target, "[ERROR] You must be founder of #{hash["parameters"]} in order to remove LimitServ from the channel." if !@irc.is_chan_founder hash["parameters"], target and !@irc.is_oper_uid target
-      return @irc.notice @client_sid, target, "[ERROR] This channel is not signed up for LimitServ." if !is_channel_signedup hash["parameters"]
+      return @irc.notice @client_sid, target, "[ERROR] This channel is not signed up for LimitServ." if !@assigned_channels.include? hash["parameters"]
       remove_channel hash["parameters"]
       @irc.notice @client_sid, target, "[SUCCESS] #{hash["parameters"]} will not be monitored by LimitServ."
       @irc.client_part_channel @client_sid, hash["parameters"]
@@ -249,6 +243,8 @@ class LimitServCore
     @m = m
     @c = c
     @d = d
+
+    @assigned_channels = []
 
     @config = c.Get
     @parameters = @config["connections"]["clients"]["irc"]["parameters"]
