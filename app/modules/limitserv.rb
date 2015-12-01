@@ -142,9 +142,7 @@ class LimitServCore
           next if oldlimit == newlimit
 
           LimitServ_Channel.connection.execute("UPDATE `limit_serv_channels` SET `People` = '#{newlimit}', `Time` = '#{Time.now.to_i}' WHERE `Channel` = '#{query.Channel}';")
-          puts "Updated MySQL"
           @irc.client_set_mode @client_sid, "#{query.Channel} +l #{newlimit}"
-          puts "Updated Channel Mode"
           @irc.privmsg @client_sid, @config["debug-channels"]["limitserv"], "NEW LIMIT: #{query.Channel} - #{newlimit}, Old Limit - #{oldlimit}, Offset: #{calc}, Actual Count: #{currentcount}"
         end
       end
