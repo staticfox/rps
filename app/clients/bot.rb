@@ -91,8 +91,7 @@ class BotClient
       me_user_notice target, "[SUCCESS] Bot has joined #{hash["parameters"]}."
       @irc.client_join_channel @client_sid, hash["parameters"]
       @irc.client_set_mode @client_sid, "#{hash["parameters"]} +o #{@client_sid}"
-      @irc.privmsg @client_sid, @config["debug-channels"]["bot"], "REQUEST: #{hash["parameters"]} - (#{@irc.get_nick_from_uid(target)})" if @irc.is_chan_founder hash["parameters"], target
-      @irc.privmsg @client_sid, @config["debug-channels"]["bot"], "REQUEST: #{hash["parameters"]} - (#{@irc.get_nick_from_uid(target)}) [OPER Override]" if @irc.is_oper_uid target
+      @irc.privmsg @client_sid, @config["debug-channels"]["bot"], "REQUEST: #{hash["parameters"]} - (#{@irc.get_nick_from_uid(target)})#{"[OPER Override]" if @irc.is_oper_uid target and !@irc.is_chan_founder hash["parameters"], target}"
 
     when "remove"
       return me_user_notice target, "[ERROR] No chatroom was specified." if hash["parameters"].empty?
@@ -103,8 +102,7 @@ class BotClient
       remove_channel hash["parameters"]
       me_user_notice target, "[SUCCESS] Bot has left #{hash["parameters"]}."
       @irc.client_part_channel @client_sid, hash["parameters"], "#{@irc.get_nick_from_uid(@client_sid)} removed by #{@irc.get_nick_from_uid(target)}"
-      @irc.privmsg @client_sid, @config["debug-channels"]["bot"], "REMOVED: #{hash["parameters"]} - (#{@irc.get_nick_from_uid(target)})" if @irc.is_chan_founder hash["parameters"], target
-      @irc.privmsg @client_sid, @config["debug-channels"]["bot"], "REMOVED: #{hash["parameters"]} - (#{@irc.get_nick_from_uid(target)}) [OPER Override]" if @irc.is_oper_uid target
+      @irc.privmsg @client_sid, @config["debug-channels"]["bot"], "REMOVED: #{hash["parameters"]} - (#{@irc.get_nick_from_uid(target)})#{"[OPER Override]" if @irc.is_oper_uid target and !@irc.is_chan_founder hash["parameters"], target}"
 
     else
       return me_user_notice target, "\x02#{hash["command"].upcase}\x02 is an unknown command"
