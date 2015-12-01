@@ -52,7 +52,7 @@ class Core
       sleep 0.001
     rescue Exception => ex
       e.Run "Error", ex
-      msg = ex.class == Interrupt ? "Exiting due to interrupt signal" : "Exiting due to exception"
+      msg = "Exiting due to #{ex.class == Interrupt ? "interrupt signal" : "exception"}"
       e.Run "Shutdown", msg
       sleep 0.2
       e.Run "Disconnect", msg
