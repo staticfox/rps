@@ -127,26 +127,17 @@ class LimitServCore
         Thread.new do
           puts "1 - Spawnned thread for checking #{query.Channel} - Waiting 60 seconds..."
           sleep 60
-          puts "Running Thread..."
 
           @channellist.delete(query.Channel)
-          puts "Channel list after channel removed. - #{@channellist}"
 
           oldlimit = query.People.to_i
-          puts "test 1"
-          puts "Query Channel: #{query.Channel}"
           newlimit = @irc.people_in_channel query.Channel
-          puts "test 2"
           newlimit = newlimit.to_i
 
           currentcount = newlimit
 
-          puts "test 3"
-
           newlimit = limits newlimit
-          puts "1 - #{query.Channel} - #{oldlimit} - #{newlimit}"
           calc = newlimit - oldlimit
-          puts "1 - Offset: #{calc}"
 
           next if oldlimit == newlimit
 
@@ -206,11 +197,9 @@ class LimitServCore
       return if queries.count == 0
       queries.each { |query|
         LimitServ_Channel.connection.execute("UPDATE `limit_serv_channels` SET `People` = '#{query.People}', `Time` = '#{Time.now.to_i}' WHERE `Channel` = '#{query.Channel}';")
-        puts "Updated MySQL"
         @irc.client_set_mode @client_sid, "#{query.Channel} -l"
-        puts "Updated Channel Mode"
-        @irc.privmsg @client_sid, @config["debug-channels"]["limitserv"], "[!NUKE!] - #{query.Channel}"
       }
+      @irc.privmsg @client_sid, @config["debug-channels"]["limitserv"], "#{@irc.get_nick_from_uid target} unset the limit in all channels"
       @irc.wallop @client_sid, "\x02#{@irc.get_nick_from_uid target}\x02 used \x02NUKE\x02 unsetting the limit in all channels"
 
     when "request"
