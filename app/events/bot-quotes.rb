@@ -20,7 +20,7 @@ class BotQuotes
     return if !['#', '&'].include? target[0]
 
     if ["!q", "!quote"].include? hash["command"].downcase
-      cp = hash["parameters"]
+      cp = hash["parameters"].split(' ')
       cp = [""] if cp.empty?
 
       case cp[0].downcase
@@ -30,7 +30,7 @@ class BotQuotes
         quote         = Quote.new
         quote.Channel = target
         quote.Person  = @irc.get_nick_from_uid(hash["from"])
-        quote.Quote   = hash["parameters"].join(' ')[4..-1]
+        quote.Quote   = hash["parameters"].split(' ')[1..-1].join(' ')
         quote.Time    = Time.now.to_i - 18000
         quote.save
         Quote.connection.disconnect!
@@ -62,12 +62,12 @@ class BotQuotes
         end
 
         Thread.new do
-        query.each do |row|
-          time = Time.at(row.Time.to_i).strftime("%m/%d/%y @ %-l:%M %p Eastern")
-          @irc.privmsg @client_sid, target, "[QUOTE] ##{row.ID}: Submitted By: #{row.Person} - #{time} - #{row.Quote}"
-          sleep 0.4
-        end
-        Quote.connection.disconnect!
+          query.each do |row|
+            time = Time.at(row.Time.to_i).strftime("%m/%d/%y @ %-l:%M %p Eastern")
+            @irc.privmsg @client_sid, target, "[QUOTE] ##{row.ID}: Submitted By: #{row.Person} - #{time} - #{row.Quote}"
+            sleep 0.4
+          end
+          Quote.connection.disconnect!
         end
 
       when ""
