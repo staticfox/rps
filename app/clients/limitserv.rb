@@ -12,6 +12,10 @@ class LimitServClient
     @irc.add_client @parameters["sid"], "#{@client_sid}", "LimitServ", "+ioS", "Services", "GeeksIRC.net", "LimitServ"
   end
 
+  def shutdown message
+    @irc.remove_client @client_sid, message
+  end
+
   def handle_privmsg hash
     @e.Run "LimitServ-Chat", hash
   end
@@ -49,5 +53,12 @@ class LimitServClient
       handle_privmsg hash if hash["msgtype"] == "PRIVMSG"
       end
     end
+
+    @e.on_event do |signal, param|
+      if signal == "Shutdown"
+        shutdown param
+      end
+    end
+
   end
 end

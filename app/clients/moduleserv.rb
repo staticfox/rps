@@ -37,6 +37,21 @@ class ModuleServClient
     @irc.wallop @client_sid, message
   end
 
+  def handle_exception param
+    if param.class == Interrupt
+      sendto_debug "Received interrupt signal, shutting down"
+      wallop_problem "\x02Shutting down due to interrupt signal\x02"
+    else
+      sendto_debug param.message
+      sendto_debug param.backtrace
+      wallop_problem "\x02Shutting down due to exception\x02: #{param.message}"
+    end
+  end
+
+  def shutdown message
+    @irc.remove_client @client_sid, message
+  end
+
    def get_stats
     GC.start
     num = `cat /proc/#{Process.pid}/status | grep "Threads"`.strip
@@ -113,5 +128,19 @@ class ModuleServClient
         handle_privmsg hash if hash["msgtype"] == "PRIVMSG"
       end
     end
+
+    @e.on_event do |signal, param|
+      case signal
+      when "Shutdown" # param is a string
+        shutdown param
+      when "Error" # param is an exception
+        handle_exception param
+      when "Disconnect"
+        # FIXME Move this out of ModuleServ and in to a connection manager with
+        # an IRCLib
+        @irc.squit @parameters["server_name"], param
+      end
+    end
+
   end
 end

@@ -91,6 +91,10 @@ class IRCLib
     send_data @name, @sock, ":#{sid} OPERWALL :#{message}\r\n"
   end
 
+  def squit sid, message
+    send_data @name, @sock, "SQUIT #{sid} :#{message}\r\n"
+  end
+
   def get_uid_object uid
     User.establish_connection(@db)
     user = User.connection.select_all("SELECT * FROM `users` WHERE `UID` = '#{uid}';")

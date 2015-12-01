@@ -267,5 +267,12 @@ class LimitServCore
         burst_data data
       end
     end
+
+    @e.on_event do |signal, param|
+      if signal == "Error"
+        _internal_nuke
+      end
+    end
+
   end
 end

@@ -50,15 +50,12 @@ class Core
     begin
       s.CheckForNewData
       sleep 0.001
-    rescue Exception => e
-      if m.GetModuleByClassName("ModuleServClient")
-        m.GetModuleByClassName("ModuleServClient").sendto_debug e.message
-        m.GetModuleByClassName("ModuleServClient").sendto_debug e.backtrace
-        m.GetModuleByClassName("ModuleServClient").wallop_problem "\x02SHUTTING DOWN DUE TO EXCEPTION\x02: #{e.message}"
-      end
-      if m.GetModuleByClassName("LimitServCore")
-        m.GetModuleByClassName("LimitServCore")._internal_nuke
-      end
+    rescue Exception => ex
+      e.Run "Error", ex
+      msg = ex.class == Interrupt ? "Exiting due to interrupt signal" : "Exiting due to exception"
+      e.Run "Shutdown", msg
+      sleep 0.2
+      e.Run "Disconnect", msg
       exit
     end
   }

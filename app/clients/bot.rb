@@ -53,6 +53,10 @@ class BotClient
     BotChannel.connection.disconnect!
   end
 
+  def shutdown message
+    @irc.remove_client @client_sid, message
+  end
+
   def handle_privmsg hash
 
     if @assigned_channels.include? hash["target"].downcase
@@ -147,5 +151,12 @@ class BotClient
         handle_privmsg hash if hash["msgtype"] == "PRIVMSG"
       end
     end
+
+    @e.on_event do |signal, param|
+      if signal == "Shutdown"
+        shutdown param
+      end
+    end
+
   end
 end
