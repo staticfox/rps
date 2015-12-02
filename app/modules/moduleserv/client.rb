@@ -10,7 +10,7 @@ class ModuleServClient
 
   def connect_client
     joined = []
-    @irc.add_client @parameters["sid"], @client_sid, @parameters["server_name"], @ms["nick"], @ms["modes"], @ms["user"], @ms["host"], @ms["real"], @ms["account"]
+    @irc.add_client @parameters["sid"], @client_sid, @parameters["server_name"], @ms["nick"], @ms["modes"], @ms["user"], @ms["host"], @ms["real"]
     @ms["idle_channels"].split(',').each { |i|
       next if joined.include? i; joined << i
       @irc.client_join_channel @client_sid, i

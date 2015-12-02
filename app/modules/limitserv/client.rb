@@ -10,7 +10,7 @@ class LimitServClient
 
   def connect_client
     joined = []
-    @irc.add_client @parameters["sid"], @client_sid, @parameters["server_name"], @ls["nick"], @ls["modes"], @ls["user"], @ls["host"], @ls["real"], @ls["account"]
+    @irc.add_client @parameters["sid"], @client_sid, @parameters["server_name"], @ls["nick"], @ls["modes"], @ls["user"], @ls["host"], @ls["real"]
     @ls["idle_channels"].split(',').each { |i|
       next if joined.include? i; joined << i
       @irc.client_join_channel @client_sid, i

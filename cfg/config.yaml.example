@@ -50,7 +50,6 @@ exmaple:
   host: whatever.net
   real: Service
   modes: +Sio
-  account: Example
   # Separated by comma
   debug_channels: '#logging1'
   idle_channels: '#idle1,#idle2,#idle3'

@@ -17,7 +17,7 @@ class IRCLib
     sock.send string, 0
   end
 
-  def add_client server_sid, sid, server, nick, modes, user, host, real, account = "*"
+  def add_client server_sid, sid, server, nick, modes, user, host, real
     @bots.each { |bot| return -1 if bot["nick"] == nick }
 
     User.establish_connection(@db)
@@ -32,11 +32,11 @@ class IRCLib
     db_add.UID      = sid
     db_add.Host     = host
     db_add.Server   = server
-    db_add.NickServ = account
+    db_add.NickServ = '*'
     db_add.save
     User.connection.disconnect!
 
-    send_data @name, @sock, ":#{server_sid} EUID #{nick} 2 #{Time.now.to_i} #{modes} #{user} #{host} 0 #{sid} * #{account} :#{real}\r\n"
+    send_data @name, @sock, ":#{server_sid} EUID #{nick} 2 #{Time.now.to_i} #{modes} #{user} #{host} 0 #{sid} * * :#{real}\r\n"
 
     hash = {"name" => @name, "sock" => @sock, "nick" => nick, "user" => user, "host" => host, "sid" => sid, "server_sid" => server_sid, "real" => real, "modes" => modes}
     @bots.push(hash)

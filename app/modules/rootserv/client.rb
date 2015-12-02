@@ -10,7 +10,7 @@ class RootservClient
 
   def connect_client
     joined = []
-    @irc.add_client @parameters["sid"], @client_sid, @parameters["server_name"], @rs["nick"], @rs["modes"], @rs["user"], @rs["host"], @rs["real"], @rs["account"]
+    @irc.add_client @parameters["sid"], @client_sid, @parameters["server_name"], @rs["nick"], @rs["modes"], @rs["user"], @rs["host"], @rs["real"]
     @rs["idle_channels"].split(',').each { |i|
       next if joined.include? i; joined << i
       @irc.client_join_channel @client_sid, i

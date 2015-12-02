@@ -19,7 +19,7 @@ class BotClient
 
   def connect_client
     joined = []
-    @irc.add_client @parameters["sid"], @client_sid, @parameters["server_name"], @bot["nick"], @bot["modes"], @bot["user"], @bot["host"], @bot["real"], @bot["account"]
+    @irc.add_client @parameters["sid"], @client_sid, @parameters["server_name"], @bot["nick"], @bot["modes"], @bot["user"], @bot["host"], @bot["real"]
     # FIXME zip arrays?
     @bot["idle_channels"].split(',').each { |i|
       next if joined.include? i or @assigned_channels.include? i; joined << i
