@@ -151,12 +151,18 @@ class IRCMsg
   def handle_join name, sock, data
     data = data.split(' ')
     UserInChannel.establish_connection(@config["connections"]["databases"]["test"])
-    userinchannel = UserInChannel.new
-    userinchannel.Channel = data[3]
-    userinchannel.User = data[0][1..-1]
-    userinchannel.Modes = ""
-    userinchannel.save
-    @e.Run "IRCChanJoin", name, sock, data
+    if data[2] == '0'
+      userinchannel = UserInChannel.where("User = ?", data[0][1..-1])
+      userinchannel.delete_all
+      @e.Run "IRCChanPart", name, sock, data
+    else
+      userinchannel = UserInChannel.new
+      userinchannel.Channel = data[3]
+      userinchannel.User = data[0][1..-1]
+      userinchannel.Modes = ""
+      userinchannel.save
+      @e.Run "IRCChanJoin", name, sock, data
+    end
     UserInChannel.connection.disconnect!
   end
 
