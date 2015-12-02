@@ -304,7 +304,7 @@ class RootservCommands
       @irc.notice @client_sid, target, "##{nick} is not on the network"
     else
       @irc.kick @client_sid, userobj["UID"], channel, kickmsg
-      @irc.notice @client_sid, target, "##{nick} has been kicked from #{channel}"
+      @irc.notice @client_sid, target, "#{nick} has been kicked from #{channel}"
       @irc.wallop @client_sid, "\x02#{@irc.get_nick_from_uid target}\x02 used \x02KICK\x02 on \x02#{userobj["Nick"]}\x02 on \x02#{chanobj["Channel"]}\x02"
     end
   end
