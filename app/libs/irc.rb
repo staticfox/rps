@@ -80,7 +80,18 @@ class IRCLib
   end
 
   def privmsg sid, target, message
-    send_data @name, @sock, ":#{sid} PRIVMSG #{target} :#{message}\r\n"
+    data = message.split("\n")
+    if data.nil?
+      message.scan(/.{1,500}/m).each { |x| send_data @name, @sock, ":#{sid} PRIVMSG #{target} :#{x}\r\n" }
+    else
+      data.each { |d|
+        if d.is_a? String
+          d.scan(/.{1,500}/m).each { |x| send_data @name, @sock, ":#{sid} PRIVMSG #{target} :#{x}\r\n" }
+        else
+          d.each { |f| f.scan(/.{1,500}/m).each { |x| send_data @name, @sock, ":#{sid} PRIVMSG #{target} :#{x}\r\n" } }
+        end
+      }
+    end
   end
 
   def notice sid, target, message
