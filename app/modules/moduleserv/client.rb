@@ -30,7 +30,7 @@ class ModuleServClient
 
   def sendto_debug message
     @ms["debug_channels"].split(',').each { |i|
-       @irc.notice @client_sid, i, message
+       @irc.privmsg @client_sid, i, message
     }
   end
 

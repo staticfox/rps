@@ -34,7 +34,7 @@ class RootservClient
 
   def sendto_debug message
     @rs["debug_channels"].split(',').each { |x|
-      @irc.notice @client_sid, x, message
+      @irc.privmsg @client_sid, x, message
     }
   end
 
