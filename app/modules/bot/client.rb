@@ -153,9 +153,7 @@ class BotClient
     end
 
     @e.on_event do |signal, param|
-      if signal == "Shutdown"
-        shutdown param
-      end
+      shutdown param if signal == "Shutdown"
     end
 
   end
