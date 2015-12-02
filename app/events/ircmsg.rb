@@ -114,7 +114,7 @@ class IRCMsg
 
   def handle_pass name, sock, data
     data = data.split(' ')
-    hash = {"SID" => data[4][1..-1], "server" => "rpsuplink"}
+    hash = {"SID" => data[-1][1..-1], "server" => "rpsuplink"}
     @ircservers.push(hash)
   end
 
