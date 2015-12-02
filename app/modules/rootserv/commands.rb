@@ -120,6 +120,11 @@ class RootservCommands
     end
 
     if has_entry newuser
+      if has_flag newuser, 'Z'
+        if !newflags.include? 'Z'
+          newflags << 'Z'
+        end
+      end
       RootservAccess.establish_connection(@db)
       query = RootservAccess.where(name: newuser).first
       query.flags = newflags
@@ -171,7 +176,7 @@ class RootservCommands
 
   def handle_access hash
     target = hash["from"]
-    if !has_flag(@irc.get_account_from_uid(target), 'F')
+    if !has_flag(@irc.get_account_from_uid(target), 'FZ')
       @irc.notice @client_sid, target, "Permission denied."
       sendto_debug "Denied access to #{@irc.get_nick_from_uid target} [#{__method__.to_s}]"
       return
@@ -198,7 +203,7 @@ class RootservCommands
 
   def handle_svsnick hash
     target = hash["from"]
-    if !has_flag(@irc.get_account_from_uid(target), 'FN')
+    if !has_flag(@irc.get_account_from_uid(target), 'FNZ')
       @irc.notice @client_sid, target, "Permission denied."
       sendto_debug "Denied access to #{@irc.get_nick_from_uid target} [#{__method__.to_s}]"
       return
@@ -221,7 +226,7 @@ class RootservCommands
 
   def handle_kill hash
     target = hash["from"]
-    if !has_flag(@irc.get_account_from_uid(target), 'FK')
+    if !has_flag(@irc.get_account_from_uid(target), 'FKZ')
       @irc.notice @client_sid, target, "Permission denied."
       sendto_debug "Denied access to #{@irc.get_nick_from_uid target} [#{__method__.to_s}]"
       return
@@ -248,7 +253,7 @@ class RootservCommands
 
   def handle_whois hash
     target = hash["from"]
-    if !has_flag(@irc.get_account_from_uid(target), 'FW')
+    if !has_flag(@irc.get_account_from_uid(target), 'FWZ')
       @irc.notice @client_sid, target, "Permission denied."
       sendto_debug "Denied access to #{@irc.get_nick_from_uid target} [#{__method__.to_s}]"
       return
@@ -273,7 +278,7 @@ class RootservCommands
 
   def handle_chaninfo hash
     target = hash["from"]
-    if !has_flag(@irc.get_account_from_uid(target), 'FC')
+    if !has_flag(@irc.get_account_from_uid(target), 'FCZ')
       @irc.notice @client_sid, target, "Permission denied."
       sendto_debug "Denied access to #{@irc.get_nick_from_uid target} [#{__method__.to_s}]"
       return
