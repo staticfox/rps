@@ -308,7 +308,6 @@ class IRCLib
   end
 
   def get_chan_info channel
-    cd = {}
     Channel.establish_connection(@db)
     channel = Channel.where('Channel = ?', channel.downcase)
     if channel.count == 0
@@ -316,11 +315,8 @@ class IRCLib
       return false
     end
     channel.each { |q|
-      cd[:channel] = q.Channel
-      cd[:ctime]   = q.CTime
-      cd[:modes]   = q.Modes
       Channel.connection.disconnect!
-      return cd
+      return q
     }
     return false
   end

@@ -314,13 +314,16 @@ class RootservCommands
     chanhash = @irc.get_chan_info chan
     return @irc.notice @client_sid, target, "Could not find channel #{chan}" if !chanhash
     usersarray = @irc.get_users_in_channel chan
-    @irc.notice @client_sid, target, "Information for \x02#{chanhash[:channel]}\x02:"
-    @irc.notice @client_sid, target, "Created on #{DateTime.strptime(chanhash[:ctime].to_s, '%s').in_time_zone('America/New_York').strftime("%A %B %d %Y @ %l:%M %P %z")} (#{ChronicDuration.output(Time.new.to_i - chanhash[:ctime].to_i)} ago)"
-    @irc.notice @client_sid, target, "Mode: #{chanhash[:modes]}"
+    @irc.notice @client_sid, target, "Information for \x02#{chanhash["Channel"]}\x02:"
+    @irc.notice @client_sid, target, "Created on #{DateTime.strptime(chanhash["CTime"].to_s, '%s').in_time_zone('America/New_York').strftime("%A %B %d %Y @ %l:%M %P %z")} (#{ChronicDuration.output(Time.new.to_i - chanhash["CTime"].to_i)} ago)"
+    @irc.notice @client_sid, target, "Mode: #{chanhash["Modes"]}"
+    @irc.notice @client_sid, target, "Topic: #{chanhash["Topic"]}"
+    @irc.notice @client_sid, target, "Topic set by #{chanhash["Topic_setby"]}" if chanhash["Topic_setby"]
+    @irc.notice @client_sid, target, "Topic set on #{DateTime.strptime(chanhash["Topic_setat"].to_s, '%s').in_time_zone('America/New_York').strftime("%A %B %d %Y @ %l:%M %P %z")} (#{ChronicDuration.output(Time.new.to_i - chanhash["Topic_setat"].to_i)} ago)" if chanhash["Topic_setat"]
     @irc.notice @client_sid, target, "Users:"
     if !usersarray.empty?
       usersarray.each { |x| @irc.notice @client_sid, target, "- #{x}" }
-      @irc.notice @client_sid, target, "#{usersarray.count} users in #{chanhash[:channel]}"
+      @irc.notice @client_sid, target, "#{usersarray.count} users in #{chanhash["Channel"]}"
     else
       @irc.notice @client_sid, target, "Channel is empty."
     end
