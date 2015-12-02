@@ -61,8 +61,13 @@ class IRCLib
 
   def client_join_channel sid, room
     ts = Time.now.to_i
-    send_data @name, @sock, ":#{sid} JOIN #{ts} #{room} +\r\n"
     UserInChannel.establish_connection(@db)
+    exists = UserInChannel.where(user: sid, channel: room)
+    if exists.count > 0
+      UserInChannel.connection.disconnect!
+      return
+    end
+    send_data @name, @sock, ":#{sid} JOIN #{ts} #{room} +\r\n"
     userinchannel = UserInChannel.new
     userinchannel.Channel = room
     userinchannel.User = sid
@@ -344,7 +349,7 @@ class IRCLib
 
     # FIXME
     u2 = []
-    users.sort!
+    users = users.sort_by{|w| w.downcase}
     users.each { |c| u2 << c if c[0] == '~' }
     users.each { |c| u2 << c if c[0] == '&' }
     users.each { |c| u2 << c if c[0] == '@' }
