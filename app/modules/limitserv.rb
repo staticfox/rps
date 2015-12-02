@@ -110,22 +110,22 @@ class LimitServCore
       newlimit = newlimit.to_i
 
       newlimit = limits newlimit
-      puts "0 - #{query.Channel} - #{oldlimit} - #{newlimit}"
+      #puts "0 - #{query.Channel} - #{oldlimit} - #{newlimit}"
       calc = newlimit - oldlimit
-      puts "Offset: #{calc}"
+      #puts "Offset: #{calc}"
 
       if calc <= -2 or calc >= 2
 
-        puts "Channel List Before Checking - #{@channellist}"
+        #puts "Channel List Before Checking - #{@channellist}"
 
         @channellist.each { |channel| return if channel == query.Channel }
 
         @channellist.push(query.Channel)
 
-        puts "Added channel to array. - #{@channellist}"
+        #puts "Added channel to array. - #{@channellist}"
 
         Thread.new do
-          puts "1 - Spawnned thread for checking #{query.Channel} - Waiting 60 seconds..."
+          #puts "1 - Spawnned thread for checking #{query.Channel} - Waiting 60 seconds..."
           sleep 60
 
           @channellist.delete(query.Channel)
