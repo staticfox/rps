@@ -289,6 +289,63 @@ class IRCLib
     return false
   end
 
+  def get_chan_info channel
+    cd = {}
+    Channel.establish_connection(@db)
+    channel = Channel.where('Channel = ?', channel.downcase)
+    if channel.count == 0
+      Channel.connection.disconnect!
+      return false
+    end
+    channel.each { |q|
+      cd[:channel] = q.Channel
+      cd[:ctime]   = q.CTime
+      cd[:modes]   = q.Modes
+      Channel.connection.disconnect!
+      return cd
+    }
+    return false
+  end
+
+  def get_users_in_channel channel
+    users = []
+    UserInChannel.establish_connection(@db)
+    uic = UserInChannel.where('Channel = ?', channel.downcase)
+    uic.each { |query|
+      pfx = ""
+      if !query["Modes"].empty?
+        query["Modes"].split(//).each { |x|
+          case x
+          when "v"
+            pfx += "+"
+          when "h"
+            pfx += "%"
+          when "o"
+            pfx += "@"
+          when "a"
+            pfx += "&"
+          when "q"
+            pfx += "~"
+          end
+        }
+      end
+      uobj = get_uid_object query["User"]
+      next if !uobj
+      users << "#{pfx}#{uobj["Nick"]}!#{uobj["Ident"]}@#{uobj["IP"]}"
+    }
+
+    # FIXME
+    u2 = []
+    users.sort!
+    users.each { |c| u2 << c if c[0] == '~' }
+    users.each { |c| u2 << c if c[0] == '&' }
+    users.each { |c| u2 << c if c[0] == '@' }
+    users.each { |c| u2 << c if c[0] == '%' }
+    users.each { |c| u2 << c if c[0] == '+' }
+    users.each { |c| u2 << c if c[0] =~ /[a-zA-Z]/ }
+    return u2
+  end
+
   def people_in_channel channel
     UserInChannel.establish_connection(@db)
     userinchannel = UserInChannel.connection.select_all("SELECT COUNT(*) AS `Total` FROM `user_in_channels` WHERE `Channel` = '#{channel.downcase}';")

@@ -76,6 +76,27 @@ class RootservCommands
     @irc.notice @client_sid, target, "End of whois information"
   end
 
+  def handle_chaninfo hash
+    target = hash["from"]
+    return @irc.notice @client_sid, target, "Channel not specified" if hash["parameters"].empty?
+
+    chan = hash["parameters"].split(' ')[0]
+    chanhash = @irc.get_chan_info chan
+    return @irc.notice @client_sid, target, "Could not find channel #{chan}" if !chanhash
+    usersarray = @irc.get_users_in_channel chan
+    @irc.notice @client_sid, target, "Information for \x02#{chanhash[:channel]}\x02:"
+    @irc.notice @client_sid, target, "Created on #{DateTime.strptime(chanhash[:ctime].to_s, '%s').in_time_zone('America/New_York').strftime("%A %B %d %Y @ %l:%M %P %z")} (#{ChronicDuration.output(Time.new.to_i - chanhash[:ctime].to_i)} ago)"
+    @irc.notice @client_sid, target, "Mode: #{chanhash[:modes]}"
+    @irc.notice @client_sid, target, "Users:"
+    if !usersarray.empty?
+      usersarray.each { |x| @irc.notice @client_sid, target, "- #{x}" }
+      @irc.notice @client_sid, target, "#{usersarray.count} users in #{chanhash[:channel]}"
+    else
+      @irc.notice @client_sid, target, "Channel is empty."
+    end
+    @irc.notice @client_sid, target, "End of chaninfo"
+  end
+
   def handle_privmsg hash
     target = hash["from"]
 
@@ -96,10 +117,14 @@ class RootservCommands
       @irc.notice @client_sid, target, "#{@rs["nick"]} allows for extra control over the network. This is intended for debug use only. i.e. don't abuse #{@rs["nick"]}."
       @irc.notice @client_sid, target, "For more information on a command, type \x02/msg #{@rs["nick"]} help <command>\x02."
       @irc.notice @client_sid, target, "The following commands are available:"
+      @irc.notice @client_sid, target, "CHANINFO <#channel>         Returns information on the channel"
       @irc.notice @client_sid, target, "KILL <nick> [message]       Kills a client"
       @irc.notice @client_sid, target, "SVSNICK <nick> <newnick>    Changes nick's name to newnick"
       @irc.notice @client_sid, target, "WHOIS <nick>                Returns information on the nick"
       @irc.notice @client_sid, target, "***** End of Help *****"
+
+    when "chaninfo"
+      handle_chaninfo hash
 
     when "svsnick"
       handle_svsnick hash
