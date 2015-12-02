@@ -131,6 +131,22 @@ class IRCMsg
     }
   end
 
+  def handle_kill name, sock, data
+    nick = data.split(' ')[2]
+
+    User.establish_connection(@config["connections"]["databases"]["test"])
+    user = User.where('UID = ?', nick)
+    user.delete_all
+
+    UserInChannel.establish_connection(@config["connections"]["databases"]["test"])
+    channel = UserInChannel.where("User = ?", nick)
+    channel.delete_all
+    User.connection.disconnect!
+    UserInChannel.connection.disconnect!
+
+    @e.Run "IRCClientQuit", name, sock, data
+  end
+
   def handle_quit name, sock, data
     data = data.split(' ')
     nick = data[0][1..-1]
@@ -284,6 +300,7 @@ class IRCMsg
         handle_mode    name, sock, data if data.include?(" MODE ")
         handle_pass    name, sock, data if data.include?("PASS ") || data.include?(" PASS ")
         handle_server  name, sock, data if data.include?("SERVER ") || data.include?(" SERVER ")
+        handle_kill    name, sock, data if data.include?("KILL ") || data.include?(" KILL ")
       end
     end
   end
