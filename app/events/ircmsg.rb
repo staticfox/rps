@@ -73,6 +73,9 @@ class IRCMsg
     users = data.split(':')[-1]
     data  = data.split(' ')
 
+    return if data.count < 4
+    return if data[4].nil?
+
     Channel.establish_connection(@config["connections"]["databases"]["test"])
     channel = Channel.new
     channel.CTime = data[2]
