@@ -4,7 +4,7 @@ require "erb"
 
 include ERB::Util
 
-require_relative "../libs/irc"
+require_relative "../../libs/irc"
 
 class BotG
 

@@ -1,6 +1,6 @@
 require "wunderground"
 
-require_relative "../libs/irc"
+require_relative "../../libs/irc"
 
 class BotWeather
 

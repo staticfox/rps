@@ -1,4 +1,4 @@
-require_relative "../libs/irc"
+require_relative "../../libs/irc"
 
 class LimitServClient
 

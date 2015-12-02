@@ -1,6 +1,6 @@
 require "active_record"
 
-require_relative "../libs/irc"
+require_relative "../../libs/irc"
 
 class LimitServ_Channel < ActiveRecord::Base
 end

@@ -8,13 +8,13 @@ modules: [ ["IRCConnectDone", "../app/events/ircconnectdone.rb"],
            ["IRCMsg", "../app/events/ircmsg.rb"],
            ["IRCNumeric", "../app/events/ircnumeric.rb"],
            ["IRCCommand", "../app/events/irccommand.rb"],
-           ["ModuleServClient", "../app/clients/moduleserv.rb"],
-           ["LimitServClient", "../app/clients/limitserv.rb"],
-           ["LimitServCore", "../app/modules/limitserv.rb"],
-           ["BotClient", "../app/clients/bot.rb"],
-           ["BotG", "../app/events/bot-g.rb"],
-           ["BotWeather", "../app/events/bot-weather.rb"],
-           ["BotQuotes", "../app/events/bot-quotes.rb"]
+           ["ModuleServClient", "../app/modules/moduleserv/client.rb"],
+           ["LimitServClient", "../app/modules/limitserv/client.rb"],
+           ["LimitServCore", "../app/modules/limitserv/core.rb"],
+           ["BotClient", "../app/modules/bot/client.rb"],
+           ["BotG", "../app/modules/bot/google.rb"],
+           ["BotWeather", "../app/modules/bot/weather.rb"],
+           ["BotQuotes", "../app/modules/bot/quotes.rb"]
          ]
 
 connections:
