@@ -217,6 +217,8 @@ class RootservCommands
       return @irc.notice @client_sid, target, "New nickname not specified"
     elsif params[1][0] =~ /[0-9]/
       return @irc.notice @client_sid, target, "Cannot SVSNICK starting with a number"
+    elsif parameters[1].length > 30
+      return @irc.notice @client_sid, target, "Nicks cannot be greater than 30 characters."
     else
       targetobj = @irc.get_nick_object params[0]
       return @irc.notice @client_sid, target, "Could not find user #{params[0]}" if !targetobj
