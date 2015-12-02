@@ -137,6 +137,18 @@ class IRCLib
     delete_user uid
   end
 
+  def kick ouruid, theiruid, channel, message
+    send_data @name, @sock, ":#{ouruid} KICK #{channel} #{theiruid} :#{message}\r\n"
+    remove_user_from_channel theiruid, channel
+  end
+
+  def remove_user_from_channel uid, channel
+    UserInChannel.establish_connection(@db)
+    userinchannel = UserInChannel.where("User = ? AND Channel = ?", uid, channel)
+    userinchannel.delete_all
+    UserInChannel.connection.disconnect!
+  end
+
   def get_user_channels uid
     UserInChannel.establish_connection(@db)
     data = UserInChannel.where("User = ?", uid)

@@ -271,6 +271,73 @@ class RootservCommands
     @irc.wallop @client_sid, "\x02#{@irc.get_nick_from_uid target}\x02 used \x02KILL\x02 on \x02#{targetobj["Nick"]}\x02"
   end
 
+  def handle_kick hash
+    target = hash["from"]
+    if !has_flag(@irc.get_account_from_uid(target), 'FKZ')
+      @irc.notice @client_sid, target, "Permission denied."
+      sendto_debug "Denied access to #{@irc.get_nick_from_uid target} [#{__method__.to_s}]"
+      return
+    end
+
+    return @irc.notice @client_sid, target, "Channel not specified" if hash["parameters"].empty?
+
+    params = hash["parameters"].split(' ')
+
+    if params.count < 2
+      @irc.notice @client_sid, target, "Need more parameters"
+    end
+    channel = params[0]
+    nick    = params[1]
+
+    if params.count == 2
+      kickmsg = "Requested"
+    else
+      kickmsg = params[2..-1].join(' ')
+    end
+
+    chanobj = @irc.get_chan_info channel
+    userobj = @irc.get_nick_object nick
+
+    if !chanobj
+      @irc.notice @client_sid, target, "##{channel} does not exist"
+    elsif !userobj
+      @irc.notice @client_sid, target, "##{nick} is not on the network"
+    else
+      @irc.kick @client_sid, userobj["UID"], channel, kickmsg
+      @irc.notice @client_sid, target, "##{nick} has been kicked from #{channel}"
+      @irc.wallop @client_sid, "\x02#{@irc.get_nick_from_uid target}\x02 used \x02KICK\x02 on \x02#{userobj["Nick"]}\x02 on \x02#{chanobj["Channel"]}\x02"
+    end
+  end
+
+  def handle_mode hash
+    target = hash["from"]
+    if !has_flag(@irc.get_account_from_uid(target), 'FMZ')
+      @irc.notice @client_sid, target, "Permission denied."
+      sendto_debug "Denied access to #{@irc.get_nick_from_uid target} [#{__method__.to_s}]"
+      return
+    end
+
+    return @irc.notice @client_sid, target, "Channel not specified" if hash["parameters"].empty?
+
+    params = hash["parameters"].split(' ')
+
+    if params.count < 2
+      @irc.notice @client_sid, target, "Need more parameters"
+    end
+    channel = params[0]
+    modes   = params[1..-1].join(' ')
+
+    chanobj = @irc.get_chan_info channel
+
+    if !chanobj
+      @irc.notice @client_sid, target, "##{channel} does not exist"
+    else
+      @irc.client_set_mode @client_sid, "#{chanobj["Channel"]} #{modes}"
+      @irc.notice @client_sid, target, "Set mode #{modes} on ##{channel}"
+      @irc.wallop @client_sid, "\x02#{@irc.get_nick_from_uid target}\x02 used \x02MODE\x02 on \x02#{chanobj["Channel"]}\x02 (\x02#{modes}\x02)"
+    end
+  end
+
   def handle_whois hash, uid = false
     target = hash["from"]
     if !has_flag(@irc.get_account_from_uid(target), 'FWZ')
@@ -353,7 +420,9 @@ class RootservCommands
       @irc.notice @client_sid, target, "[F] ACCESS                      Modifies #{@rs["Nick"]}'s access list"
       @irc.notice @client_sid, target, "[C] CHANINFO <#channel>         Returns information on the channel"
       @irc.notice @client_sid, target, "[F] FLAGS                       Modifies #{@rs["Nick"]}'s access list"
+      @irc.notice @client_sid, target, "[K] KICK <#channel> <nick>      Kicks a user from a channel"
       @irc.notice @client_sid, target, "[K] KILL <nick> [message]       Kills a client"
+      @irc.notice @client_sid, target, "[M] MODE <#channel>             Sets modes on a channel"
       @irc.notice @client_sid, target, "[N] SVSNICK <nick> <newnick>    Changes nick's name to newnick"
       @irc.notice @client_sid, target, "[W] UID <uid>                   Returns information on the UID"
       @irc.notice @client_sid, target, "[W] WHOIS <nick>                Returns information on the nick"
@@ -373,11 +442,17 @@ class RootservCommands
       @irc.notice @client_sid, target, " "
       @irc.notice @client_sid, target, "***** End of Help *****"
 
+    when "mode"
+      handle_mode hash
+
     when "chaninfo"
       handle_chaninfo hash
 
     when "svsnick"
       handle_svsnick hash
+
+    when "kick"
+      handle_kick hash
 
     when "kill"
       handle_kill hash
