@@ -268,7 +268,8 @@ class IRCMsg
     User.establish_connection(@config["connections"]["databases"]["test"])
     nickd = User.sanitize data[2]
     nickuid = User.sanitize data[0][1..-1]
-    User.connection.execute("UPDATE `users` SET `Nick` = #{nickd} WHERE `UID` = #{nickuid};")
+    ctime = User.sanitize data[3][1..-1]
+    User.connection.execute("UPDATE `users` SET `Nick` = #{nickd}, `CTime` = #{ctime} WHERE `UID` = #{nickuid};")
     User.connection.disconnect!
   end
 
