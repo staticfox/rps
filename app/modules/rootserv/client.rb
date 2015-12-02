@@ -16,11 +16,6 @@ class RootservClient
       @irc.client_join_channel @client_sid, i
       @irc.client_set_mode @client_sid, "#{i} +o #{@rs["nick"]}"
     }
-    @rs["debug_channels"].split(',').each { |i|
-      next if joined.include? i; joined << i
-      @irc.client_join_channel @client_sid, i
-      @irc.client_set_mode @client_sid, "#{i} +o #{@rs["nick"]}"
-    }
     @rs["control_channels"].split(',').each { |i|
       next if joined.include? i; joined << i
       @irc.client_join_channel @client_sid, i
@@ -33,7 +28,7 @@ class RootservClient
   end
 
   def sendto_debug message
-    @rs["debug_channels"].split(',').each { |x| @irc.privmsg @client_sid, x, message }
+    @rs["debug_channels"].split(',').each { |x| @irc.privmsg @client_sid, x, message } if @rs["debug_channels"]
     @rs["control_channels"].split(',').each { |x| @irc.privmsg @client_sid, x, message }
   end
 

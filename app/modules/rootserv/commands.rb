@@ -165,7 +165,7 @@ class RootservCommands
   end
 
   def sendto_debug message
-    @rs["debug_channels"].split(',').each { |x| @irc.privmsg @client_sid, x, message }
+    @rs["debug_channels"].split(',').each { |x| @irc.privmsg @client_sid, x, message } if @rs["debug_channels"]
     @rs["control_channels"].split(',').each { |x| @irc.privmsg @client_sid, x, message }
   end
 
