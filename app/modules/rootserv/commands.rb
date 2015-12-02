@@ -251,7 +251,7 @@ class RootservCommands
     @irc.wallop @client_sid, "\x02#{@irc.get_nick_from_uid target}\x02 used \x02KILL\x02 on \x02#{targetobj["Nick"]}\x02"
   end
 
-  def handle_whois hash
+  def handle_whois hash, uid = false
     target = hash["from"]
     if !has_flag(@irc.get_account_from_uid(target), 'FWZ')
       @irc.notice @client_sid, target, "Permission denied."
@@ -262,35 +262,14 @@ class RootservCommands
     return @irc.notice @client_sid, target, "User not specified" if hash["parameters"].empty?
 
     nick = hash["parameters"].split(' ')[0]
-    targetobj = @irc.get_nick_object nick
-    return @irc.notice @client_sid, target, "Could not find user #{nick}" if !targetobj
+    if uid
+      targetobj = @irc.get_uid_object nick
+    else
+      targetobj = @irc.get_nick_object nick
+    end
+    return @irc.notice @client_sid, target, "Could not find #{uid ? "uid" : "user"} #{nick}" if !targetobj
 
     @irc.notice @client_sid, target, "Information for \x02#{nick}\x02:"
-    @irc.notice @client_sid, target, "UID: #{targetobj["UID"]}"
-    @irc.notice @client_sid, target, "Signed on: #{DateTime.strptime(targetobj["CTime"], '%s').in_time_zone('America/New_York').strftime("%A %B %d %Y @ %l:%M %P %z")} (#{ChronicDuration.output(Time.new.to_i - targetobj["CTime"].to_i)} ago)"
-    @irc.notice @client_sid, target, "Real nick!user@host: #{targetobj["Nick"]}!#{targetobj["Ident"]}@#{targetobj["Host"] == "*" ? targetobj["IP"] : targetobj["Host"]}"
-    @irc.notice @client_sid, target, "Server: #{targetobj["Server"]}"
-    @irc.notice @client_sid, target, "Services account: #{targetobj["NickServ"] == "*" ? "Not logged in." : targetobj["NickServ"]}"
-    @irc.notice @client_sid, target, "User modes: #{targetobj["UModes"]}"
-    @irc.notice @client_sid, target, "Channels: #{@irc.get_user_channels(targetobj["UID"]).join(' ')}"
-    @irc.notice @client_sid, target, "End of whois information"
-  end
-
-  def handle_uid hash
-    target = hash["from"]
-    if !has_flag(@irc.get_account_from_uid(target), 'FWZ')
-      @irc.notice @client_sid, target, "Permission denied."
-      sendto_debug "Denied access to #{@irc.get_nick_from_uid target} [#{__method__.to_s}]"
-      return
-    end
-
-    return @irc.notice @client_sid, target, "User not specified" if hash["parameters"].empty?
-
-    nick = hash["parameters"].split(' ')[0]
-    targetobj = @irc.get_uid_object nick
-    return @irc.notice @client_sid, target, "Could not find uid #{nick}" if !targetobj
-
-    @irc.notice @client_sid, target, "Information for \x02#{targetobj["Nick"]}\x02:"
     @irc.notice @client_sid, target, "UID: #{targetobj["UID"]}"
     @irc.notice @client_sid, target, "Signed on: #{DateTime.strptime(targetobj["CTime"], '%s').in_time_zone('America/New_York').strftime("%A %B %d %Y @ %l:%M %P %z")} (#{ChronicDuration.output(Time.new.to_i - targetobj["CTime"].to_i)} ago)"
     @irc.notice @client_sid, target, "Real nick!user@host: #{targetobj["Nick"]}!#{targetobj["Ident"]}@#{targetobj["Host"] == "*" ? targetobj["IP"] : targetobj["Host"]}"
@@ -378,7 +357,7 @@ class RootservCommands
       handle_whois hash
 
     when "uid"
-      handle_uid hash
+      handle_whois hash, true
 
     when "access", "flags"
       handle_access hash
