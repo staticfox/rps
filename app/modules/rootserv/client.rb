@@ -33,9 +33,8 @@ class RootservClient
   end
 
   def sendto_debug message
-    @rs["debug_channels"].split(',').each { |x|
-      @irc.privmsg @client_sid, x, message
-    }
+    @rs["debug_channels"].split(',').each { |x| @irc.privmsg @client_sid, x, message }
+    @rs["control_channels"].split(',').each { |x| @irc.privmsg @client_sid, x, message }
   end
 
   def handle_privmsg hash
@@ -47,7 +46,7 @@ class RootservClient
     if @irc.is_oper_uid target
       return @e.Run "Rootserv-Chat", hash
     else
-      return sendto_debug "Denied access to user"
+      return sendto_debug "Denied access to #{@irc.get_nick_from_uid hash["from"]} (non-oper) [#{hash["command"]} #{hash["parameters"]}]"
     end
   end
 

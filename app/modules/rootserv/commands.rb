@@ -15,12 +15,8 @@ class RootservCommands
   end
 
   def sendto_debug message
-    @rs["debug_channels"].split(',').each { |x|
-      @irc.notice @client_sid, x, message
-    }
-    @rs["control_channels"].split(',').each { |x|
-      @irc.notice @client_sid, x, message
-    }
+    @rs["debug_channels"].split(',').each { |x| @irc.privmsg @client_sid, x, message }
+    @rs["control_channels"].split(',').each { |x| @irc.privmsg @client_sid, x, message }
   end
 
   def handle_svsnick hash
