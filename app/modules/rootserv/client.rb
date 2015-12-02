@@ -36,6 +36,7 @@ class RootservClient
     target = hash["target"]
     target = hash["from"] if target == @client_sid
 
+    return if hash["target"] != @client_sid
     return if ['#', '&'].include? target[0]
 
     if @irc.is_oper_uid target
