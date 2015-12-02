@@ -218,6 +218,11 @@ class RootservCommands
     else
       targetobj = @irc.get_nick_object params[0]
       return @irc.notice @client_sid, target, "Could not find user #{params[0]}" if !targetobj
+
+      if params[1].downcase == targetobj["Nick"].downcase
+        return @irc.notice @client_sid, target, "Their nick is already #{params[0]}"
+      end
+
       @irc.ts6_fnc @parameters["sid"], params[1], targetobj
       @irc.notice @client_sid, target, "Changed #{targetobj["Nick"]}'s nick to #{params[1]}"
       @irc.wallop @client_sid, "\x02#{@irc.get_nick_from_uid target}\x02 used \x02SVSNICK\x02 on \x02#{targetobj["Nick"]}\x02 => \x02#{params[1]}\x02"
