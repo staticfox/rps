@@ -215,12 +215,27 @@ class RootservCommands
 
     if params[1].nil? or params[1].empty?
       return @irc.notice @client_sid, target, "New nickname not specified"
+    elsif params[1][0] =~ /[0-9]/
+      return @irc.notice @client_sid, target, "Cannot SVSNICK starting with a number"
     else
       targetobj = @irc.get_nick_object params[0]
       return @irc.notice @client_sid, target, "Could not find user #{params[0]}" if !targetobj
 
       if params[1].downcase == targetobj["Nick"].downcase
         return @irc.notice @client_sid, target, "Their nick is already #{params[0]}"
+      end
+
+      remote_user = @irc.get_nick_object params[1]
+      if remote_user
+        if remote_user["Nick"] != remote_user["UID"]
+          @irc.ts6_save @parameters["sid"], remote_user
+        else
+          us = @irc.get_uid_object(@client_sid)
+          if !us
+            return sendto_debug "ERROR: Lost our User entry!"
+          end
+          @irc.kill us, remote_user["UID"], "Nick collision"
+        end
       end
 
       @irc.ts6_fnc @parameters["sid"], params[1], targetobj

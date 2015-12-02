@@ -127,6 +127,11 @@ class IRCLib
     change_nick newnick, uobj["UID"]
   end
 
+  def ts6_save sid, uobj
+    send_data @name, @sock, ":#{sid} SAVE #{uobj["UID"]} #{uobj["CTime"]}\r\n"
+    change_nick uobj["UID"], uobj["UID"]
+  end
+
   def kill sobj, uid, message
     send_data @name, @sock, ":#{sobj["UID"]} KILL #{uid} :#{sobj["Host"]}!#{sobj["Nick"]} (#{message})\r\n"
     delete_user uid
@@ -355,7 +360,7 @@ class IRCLib
     users.each { |c| u2 << c if c[0] == '@' }
     users.each { |c| u2 << c if c[0] == '%' }
     users.each { |c| u2 << c if c[0] == '+' }
-    users.each { |c| u2 << c if c[0] =~ /[a-zA-Z]/ }
+    users.each { |c| u2 << c if !['~', '&', '@', '%', '+'].include? c[0] }
     return u2
   end
 
