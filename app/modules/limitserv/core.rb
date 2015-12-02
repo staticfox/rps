@@ -38,6 +38,12 @@ class LimitServCore
     return true
   end
 
+  def sendto_debug message
+    @ls["debug_channels"].split(',').each { |i|
+      @irc.privmsg @client_sid, i, message
+    }
+  end
+
   def join_channels
     LimitServ_Channel.establish_connection(@config["connections"]["databases"]["test"])
     queries = LimitServ_Channel.select(:Channel)
@@ -45,7 +51,7 @@ class LimitServCore
     queries.each { |query|
       @irc.client_join_channel @client_sid, query.Channel
       @irc.client_set_mode @client_sid, "#{query.Channel} +o #{@client_sid}"
-      @irc.privmsg @client_sid, @config["debug-channels"]["limitserv"], "JOINED: #{query.Channel}"
+      sendto_debug "JOINED: #{query.Channel}"
       @assigned_channels << query.Channel
     }
     LimitServ_Channel.connection.disconnect!
@@ -143,7 +149,7 @@ class LimitServCore
 
           LimitServ_Channel.connection.execute("UPDATE `limit_serv_channels` SET `People` = '#{newlimit}', `Time` = '#{Time.now.to_i}' WHERE `Channel` = '#{query.Channel}';")
           @irc.client_set_mode @client_sid, "#{query.Channel} +l #{newlimit}"
-          @irc.privmsg @client_sid, @config["debug-channels"]["limitserv"], "NEW LIMIT: #{query.Channel} - #{newlimit}, Old Limit - #{oldlimit}, Offset: #{calc}, Actual Count: #{currentcount}"
+          sendto_debug "NEW LIMIT: #{query.Channel} - #{newlimit}, Old Limit - #{oldlimit}, Offset: #{calc}, Actual Count: #{currentcount}"
         end
       end
     }
@@ -167,20 +173,20 @@ class LimitServCore
     when "help"
       # TODO
       if !hash["parameters"].empty?
-        @irc.notice @client_sid, target, "***** LimitServ Help *****"
+        @irc.notice @client_sid, target, "***** #{@ls["nick"]} Help *****"
         @irc.notice @client_sid, target, "Extended help not implemented yet."
         @irc.notice @client_sid, target, "***** End of Help *****"
         return
       end
 
-      @irc.notice @client_sid, target, "***** LimitServ Help *****"
-      @irc.notice @client_sid, target, "LimitServ allows channel owners to limit the amount of joins that happen in certain amount of time. This is to prevent join floods."
-      @irc.notice @client_sid, target, "For more info a command, type '/msg LimitServ help <command>' (without the quotes) for more information."
+      @irc.notice @client_sid, target, "***** #{@ls["nick"]} Help *****"
+      @irc.notice @client_sid, target, "#{@ls["nick"]} allows channel owners to limit the amount of joins that happen in certain amount of time. This is to prevent join floods."
+      @irc.notice @client_sid, target, "For more info a command, type '/msg #{@ls["nick"]} help <command>' (without the quotes) for more information."
       @irc.notice @client_sid, target, "The following commands are available:"
-      @irc.notice @client_sid, target, "LIST            List channels that LimitServ monitors." if @irc.is_oper_uid target
-      @irc.notice @client_sid, target, "REQUEST         Request LimitServ to protect a channel from join floods."
-      @irc.notice @client_sid, target, "REMOVE          Stop LimitServ from protecting a channel."
-      @irc.notice @client_sid, target, "NUKE            Unsets all channel limits where LimitServ lives." if @irc.is_oper_uid target
+      @irc.notice @client_sid, target, "LIST            List channels that #{@ls["nick"]} monitors." if @irc.is_oper_uid target
+      @irc.notice @client_sid, target, "REQUEST         Request #{@ls["nick"]} to protect a channel from join floods."
+      @irc.notice @client_sid, target, "REMOVE          Stop #{@ls["nick"]} from protecting a channel."
+      @irc.notice @client_sid, target, "NUKE            Unsets all channel limits where #{@ls["nick"]} lives." if @irc.is_oper_uid target
       @irc.notice @client_sid, target, "***** End of Help *****"
       @irc.notice @client_sid, target, "If you're having trouble or you need additional help, you may want to join the help channel #help."
 
@@ -197,29 +203,29 @@ class LimitServCore
         LimitServ_Channel.connection.execute("UPDATE `limit_serv_channels` SET `People` = '#{query.People}', `Time` = '#{Time.now.to_i}' WHERE `Channel` = '#{query.Channel}';")
         @irc.client_set_mode @client_sid, "#{query.Channel} -l"
       }
-      @irc.privmsg @client_sid, @config["debug-channels"]["limitserv"], "#{@irc.get_nick_from_uid target} unset the limit in all channels"
+      sendto_debug "#{@irc.get_nick_from_uid target} unset the limit in all channels"
       @irc.wallop @client_sid, "\x02#{@irc.get_nick_from_uid target}\x02 used \x02NUKE\x02 unsetting the limit in all channels"
 
     when "request"
       return @irc.notice @client_sid, target, "[ERROR] No chatroom was specified." if hash["parameters"].empty?
       return @irc.notice @client_sid, target, "[ERROR] The channel does not exist on this network." if !@irc.does_channel_exist hash["parameters"]
-      return @irc.notice @client_sid, target, "[ERROR] You must be founder of #{hash["parameters"]} in order to add LimitServ to the channel." if !@irc.is_chan_founder hash["parameters"], target and !@irc.is_oper_uid target
-      return @irc.notice @client_sid, target, "[ERROR] This channel is already signed up for LimitServ." if @assigned_channels.include? hash["parameters"]
+      return @irc.notice @client_sid, target, "[ERROR] You must be founder of #{hash["parameters"]} in order to add #{@ls["nick"]} to the channel." if !@irc.is_chan_founder hash["parameters"], target and !@irc.is_oper_uid target
+      return @irc.notice @client_sid, target, "[ERROR] This channel is already signed up for #{@ls["nick"]}." if @assigned_channels.include? hash["parameters"]
       signup_channel hash["parameters"]
-      @irc.notice @client_sid, target, "[SUCCESS] #{hash["parameters"]} will now be monitored by LimitServ."
+      @irc.notice @client_sid, target, "[SUCCESS] #{hash["parameters"]} will now be monitored by #{@ls["nick"]}."
       @irc.client_join_channel @client_sid, hash["parameters"]
       @irc.client_set_mode @client_sid, "#{hash["parameters"]} +o #{@client_sid}"
-      @irc.privmsg @client_sid, @config["debug-channels"]["limitserv"], "REQUEST: #{hash["parameters"]} - (#{@irc.get_nick_from_uid(target)})#{"[OPER Override]" if @irc.is_oper_uid target and !@irc.is_chan_founder hash["parameters"], target}"
+      sendto_debug "REQUEST: #{hash["parameters"]} - (#{@irc.get_nick_from_uid(target)})#{"[OPER Override]" if @irc.is_oper_uid target and !@irc.is_chan_founder hash["parameters"], target}"
 
     when "remove"
       return @irc.notice @client_sid, target, "[ERROR] No chatroom was specified." if hash["parameters"].empty?
       return @irc.notice @client_sid, target, "[ERROR] The channel does not exist on this network." if !@irc.does_channel_exist hash["parameters"]
-      return @irc.notice @client_sid, target, "[ERROR] You must be founder of #{hash["parameters"]} in order to remove LimitServ from the channel." if !@irc.is_chan_founder hash["parameters"], target and !@irc.is_oper_uid target
-      return @irc.notice @client_sid, target, "[ERROR] This channel is not signed up for LimitServ." if !@assigned_channels.include? hash["parameters"]
+      return @irc.notice @client_sid, target, "[ERROR] You must be founder of #{hash["parameters"]} in order to remove #{@ls["nick"]} from the channel." if !@irc.is_chan_founder hash["parameters"], target and !@irc.is_oper_uid target
+      return @irc.notice @client_sid, target, "[ERROR] This channel is not signed up for #{@ls["nick"]}." if !@assigned_channels.include? hash["parameters"]
       remove_channel hash["parameters"]
-      @irc.notice @client_sid, target, "[SUCCESS] #{hash["parameters"]} will not be monitored by LimitServ."
+      @irc.notice @client_sid, target, "[SUCCESS] #{hash["parameters"]} will not be monitored by #{@ls["nick"]}."
       @irc.client_part_channel @client_sid, hash["parameters"], "#{@irc.get_nick_from_uid(@client_sid)} removed by #{@irc.get_nick_from_uid(target)}"
-      @irc.privmsg @client_sid, @config["debug-channels"]["limitserv"], "REMOVED: #{hash["parameters"]} - (#{@irc.get_nick_from_uid(target)})#{"[OPER Override]" if @irc.is_oper_uid target and !@irc.is_chan_founder hash["parameters"], target}"
+      sendto_debug "REMOVED: #{hash["parameters"]} - (#{@irc.get_nick_from_uid(target)})#{"[OPER Override]" if @irc.is_oper_uid target and !@irc.is_chan_founder hash["parameters"], target}"
 
     else
       @irc.notice @client_sid, target, "#{hash["command"].upcase} is an unknown command."
@@ -236,6 +242,7 @@ class LimitServCore
     @assigned_channels = []
 
     @config = c.Get
+    @ls = @config["limitserv"]
     @parameters = @config["connections"]["clients"]["irc"]["parameters"]
     @client_sid = "#{@parameters["sid"]}000002"
     LimitServ_Channel.establish_connection(@config["connections"]["databases"]["test"])

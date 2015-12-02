@@ -18,7 +18,30 @@ class BotClient
   end
 
   def connect_client
-    @irc.add_client @parameters["sid"], "#{@client_sid}", "Bot", "+ioS", "Bot", "GeeksIRC.net", "Bot"
+    joined = []
+    @irc.add_client @parameters["sid"], @client_sid, @parameters["server_name"], @bot["nick"], @bot["modes"], @bot["user"], @bot["host"], @bot["real"], @bot["account"]
+    # FIXME zip arrays?
+    @bot["idle_channels"].split(',').each { |i|
+      next if joined.include? i or @assigned_channels.include? i; joined << i
+      @irc.client_join_channel @client_sid, i
+      @irc.client_set_mode @client_sid, "#{i} +o #{@bot["nick"]}"
+    }
+    @bot["debug_channels"].split(',').each { |i|
+      next if joined.include? i or @assigned_channels.include? i; joined << i
+      @irc.client_join_channel @client_sid, i
+      @irc.client_set_mode @client_sid, "#{i} +o #{@bot["nick"]}"
+    }
+    @bot["control_channels"].split(',').each { |i|
+      next if joined.include? i or @assigned_channels.include? i; joined << i
+      @irc.client_join_channel @client_sid, i
+      @irc.client_set_mode @client_sid, "#{i} +o #{@bot["nick"]}"
+    }
+  end
+
+  def sendto_debug message
+    @bot["debug_channels"].split(',').each { |i|
+      @irc.privmsg @client_sid, i, message
+    }
   end
 
   def signup_channel channel
@@ -47,7 +70,7 @@ class BotClient
     queries.each do |query|
       @irc.client_join_channel @client_sid, query.Channel
       @irc.client_set_mode @client_sid, "#{query.Channel} +o #{@client_sid}"
-      @irc.privmsg @client_sid, @config["debug-channels"]["bot"], "JOINED: #{query.Channel}"
+      sendto_debug "JOINED: #{query.Channel}"
       @assigned_channels << query.Channel
     end
     BotChannel.connection.disconnect!
@@ -71,11 +94,11 @@ class BotClient
 
     case hash["command"].downcase
     when "help"
-      me_user_notice target, "***** Bot Help *****"
-      me_user_notice target, "Bot is a utility bot that adds functionality to your channel."
+      me_user_notice target, "***** #{@bot["nick"]} Help *****"
+      me_user_notice target, "#{@bot["nick"]} is a utility bot that adds functionality to your channel."
       me_user_notice target, "The following commands are available:"
-      me_user_notice target, "REQUEST                   Request Bot for your channel."
-      me_user_notice target, "REMOVE                    Remove Bot from your channel."
+      me_user_notice target, "REQUEST                   Request #{@bot["nick"]} for your channel."
+      me_user_notice target, "REMOVE                    Remove #{@bot["nick"]} from your channel."
       me_user_notice target, "***** In Channel Commands *****"
       me_user_notice target, "!w <zip/city, state>      Displays the current weather conditions."
       me_user_notice target, "!g <google search>        Searches google for what you specified."
@@ -89,24 +112,24 @@ class BotClient
     when "request"
       return me_user_notice target, "[ERROR] No chatroom was specified." if hash["parameters"].empty?
       return me_user_notice target, "[ERROR] The channel does not exist on this network." if !@irc.does_channel_exist hash["parameters"]
-      return me_user_notice target, "[ERROR] You must be founder of #{hash["parameters"]} in order to add Bot to the channel." if !@irc.is_chan_founder hash["parameters"], target and !@irc.is_oper_uid target
-      return me_user_notice target, "[ERROR] This channel is already signed up for Bot." if @assigned_channels.include? hash["parameters"]
+      return me_user_notice target, "[ERROR] You must be founder of #{hash["parameters"]} in order to add #{@bot["nick"]} to the channel." if !@irc.is_chan_founder hash["parameters"], target and !@irc.is_oper_uid target
+      return me_user_notice target, "[ERROR] This channel is already signed up for #{@bot["nick"]}." if @assigned_channels.include? hash["parameters"]
       signup_channel hash["parameters"]
-      me_user_notice target, "[SUCCESS] Bot has joined #{hash["parameters"]}."
+      me_user_notice target, "[SUCCESS] #{@bot["nick"]} has joined #{hash["parameters"]}."
       @irc.client_join_channel @client_sid, hash["parameters"]
       @irc.client_set_mode @client_sid, "#{hash["parameters"]} +o #{@client_sid}"
-      @irc.privmsg @client_sid, @config["debug-channels"]["bot"], "REQUEST: #{hash["parameters"]} - (#{@irc.get_nick_from_uid(target)})#{"[OPER Override]" if @irc.is_oper_uid target and !@irc.is_chan_founder hash["parameters"], target}"
+      sendto_debug "REQUEST: #{hash["parameters"]} - (#{@irc.get_nick_from_uid(target)})#{"[OPER Override]" if @irc.is_oper_uid target and !@irc.is_chan_founder hash["parameters"], target}"
 
     when "remove"
       return me_user_notice target, "[ERROR] No chatroom was specified." if hash["parameters"].empty?
       return me_user_notice target, "[ERROR] The channel does not exist on this network." if !@irc.does_channel_exist hash["parameters"]
-      return me_user_notice target, "[ERROR] You must be founder of #{hash["parameters"]} in order to remove Bot from the channel." if !@irc.is_chan_founder hash["parameters"], target and !@irc.is_oper_uid target
-      return me_user_notice target, "[ERROR] This channel is not signed up for Bot." if !@assigned_channels.include? hash["parameters"]
+      return me_user_notice target, "[ERROR] You must be founder of #{hash["parameters"]} in order to remove #{@bot["nick"]} from the channel." if !@irc.is_chan_founder hash["parameters"], target and !@irc.is_oper_uid target
+      return me_user_notice target, "[ERROR] This channel is not signed up for #{@bot["nick"]}." if !@assigned_channels.include? hash["parameters"]
 
       remove_channel hash["parameters"]
-      me_user_notice target, "[SUCCESS] Bot has left #{hash["parameters"]}."
+      me_user_notice target, "[SUCCESS] #{@bot["nick"]} has left #{hash["parameters"]}."
       @irc.client_part_channel @client_sid, hash["parameters"], "#{@irc.get_nick_from_uid(@client_sid)} removed by #{@irc.get_nick_from_uid(target)}"
-      @irc.privmsg @client_sid, @config["debug-channels"]["bot"], "REMOVED: #{hash["parameters"]} - (#{@irc.get_nick_from_uid(target)})#{"[OPER Override]" if @irc.is_oper_uid target and !@irc.is_chan_founder hash["parameters"], target}"
+      sendto_debug "REMOVED: #{hash["parameters"]} - (#{@irc.get_nick_from_uid(target)})#{"[OPER Override]" if @irc.is_oper_uid target and !@irc.is_chan_founder hash["parameters"], target}"
 
     else
       return me_user_notice target, "\x02#{hash["command"].upcase}\x02 is an unknown command"
@@ -122,13 +145,15 @@ class BotClient
     @assigned_channels = []
 
     @config = c.Get
+    @bot = @config["bot"]
     @parameters = @config["connections"]["clients"]["irc"]["parameters"]
     @client_sid = "#{@parameters["sid"]}000003"
     @initialized = false
 
     @e.on_event do |type, name, sock|
       if type == "IRCClientInit"
-        config = @c.Get
+        @config = @c.Get
+        @bot = @config["bot"]
         @irc = IRCLib.new name, sock, @config["connections"]["databases"]["test"]
         connect_client
         sleep 1
@@ -140,8 +165,9 @@ class BotClient
     @e.on_event do |type, hash|
       if type == "IRCChat"
         if !@initialized
-          config = @c.Get
-          @irc = IRCLib.new hash["name"], hash["sock"], config["connections"]["databases"]["test"]
+          @config = @c.Get
+          @bot = @config["bot"]
+          @irc = IRCLib.new hash["name"], hash["sock"], @config["connections"]["databases"]["test"]
           connect_client
           sleep 1
           join_channels

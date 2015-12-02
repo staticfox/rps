@@ -64,7 +64,7 @@ class IRCMsg
     end
 
     user.Server = "irc.geeksirc.net" if user.Server.nil?
-    user.NickServ = "User"
+    user.NickServ = data[11]
     user.save
     User.connection.disconnect!
   end
@@ -110,6 +110,22 @@ class IRCMsg
     hash = {"SID" => data[4], "server" => data[2]}
     #puts hash
     @ircservers.push(hash)
+  end
+
+  def handle_pass name, sock, data
+    data = data.split(' ')
+    hash = {"SID" => data[4][1..-1], "server" => "rpsuplink"}
+    @ircservers.push(hash)
+  end
+
+  def handle_server name, sock, data
+    server = data.split(' ')[1]
+    @ircservers.collect { |hash|
+      if hash["server"] == "rpsuplink"
+        hash["server"] = server
+        puts "set #{hash["SID"]} to #{server}"
+      end
+    }
   end
 
   def handle_quit name, sock, data
@@ -257,6 +273,8 @@ class IRCMsg
         handle_nick    name, sock, data if data.include?(" NICK ")
         handle_kick    name, sock, data if data.include?(" KICK ")
         handle_mode    name, sock, data if data.include?(" MODE ")
+        handle_pass    name, sock, data if data.include?("PASS ") || data.include?(" PASS ")
+        handle_server  name, sock, data if data.include?("SERVER ") || data.include?(" SERVER ")
       end
     end
   end

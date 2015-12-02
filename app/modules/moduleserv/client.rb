@@ -9,28 +9,29 @@ class ModuleServClient
   end
 
   def connect_client
-    idle_channels = []
-    @config["idle"].each { |i| idle_channels << i["channel"] }
-    @irc.add_client @parameters["sid"], "#{@client_sid}", "ModuleServ", "+ioS", "ModuleServ", "Serv1-Bot.GeeksIRC.net", "ModuleServ"
-    idle_channels.each { |i|
-       @irc.client_join_channel @client_sid, i
-       @irc.client_set_mode @client_sid, "#{i} +o ModuleServ"
+    joined = []
+    @irc.add_client @parameters["sid"], @client_sid, @parameters["server_name"], @ms["nick"], @ms["modes"], @ms["user"], @ms["host"], @ms["real"], @ms["account"]
+    @ms["idle_channels"].split(',').each { |i|
+      next if joined.include? i; joined << i
+      @irc.client_join_channel @client_sid, i
+      @irc.client_set_mode @client_sid, "#{i} +o #{@ms["nick"]}"
+    }
+    @ms["debug_channels"].split(',').each { |i|
+      next if joined.include? i; joined << i
+      @irc.client_join_channel @client_sid, i
+      @irc.client_set_mode @client_sid, "#{i} +o #{@ms["nick"]}"
+    }
+    @ms["control_channels"].split(',').each { |i|
+      next if joined.include? i; joined << i
+      @irc.client_join_channel @client_sid, i
+      @irc.client_set_mode @client_sid, "#{i} +o #{@ms["nick"]}"
     }
   end
 
   def sendto_debug message
-    data = message.split("\n")
-    if data.nil?
-      message.scan(/.{1,500}/m).each { |x| @irc.notice @client_sid, @config["debug-channels"]["moduleserv"], x }
-    else
-      data.each { |d|
-        if d.is_a? String
-          d.scan(/.{1,500}/m).each { |x| @irc.notice @client_sid, @config["debug-channels"]["moduleserv"], x }
-        else
-          d.each { |f| f.scan(/.{1,500}/m).each { |x| @irc.notice @client_sid, @config["debug-channels"]["moduleserv"], x } }
-        end
-      }
-    end
+    @ms["debug_channels"].split(',').each { |i|
+       @irc.notice @client_sid, i, message
+    }
   end
 
   def wallop_problem message
@@ -67,12 +68,12 @@ class ModuleServClient
     target = hash["from"] if target == @client_sid
 
     control_channels = []
-    @config["control"].each { |c| control_channels << c["channel"] }
+    @ms["control_channels"].split(',').each { |c| control_channels << c }
 
     @irc.privmsg @client_sid, target, get_stats if hash["command"] == "!status" and control_channels.include? target
 
     if hash["command"] == "!module" and control_channels.include? target
-      cp = hash["parameters"]
+      cp = hash["parameters"].split(' ')
       cp = [""] if cp.empty?
 
       if cp[0] == "load"
@@ -103,6 +104,7 @@ class ModuleServClient
     @d = d
 
     @config = c.Get
+    @ms = @config["moduleserv"]
     @parameters = @config["connections"]["clients"]["irc"]["parameters"]
     @client_sid = "#{@parameters["sid"]}000001"
     @initialized = false
@@ -110,6 +112,7 @@ class ModuleServClient
     @e.on_event do |type, name, sock|
       if type == "IRCClientInit"
         @config = @c.Get
+        @ms = @config["moduleserv"]
         @irc = IRCLib.new name, sock, @config["connections"]["databases"]["test"]
         connect_client
         @initialized = true
@@ -120,6 +123,7 @@ class ModuleServClient
       if type == "IRCChat"
         if !@initialized
           @config = @c.Get
+          @ms = @config["moduleserv"]
           @irc = IRCLib.new hash["name"], hash["sock"], @config["connections"]["databases"]["test"]
           connect_client
           @initialized = true

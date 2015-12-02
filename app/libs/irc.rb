@@ -17,7 +17,7 @@ class IRCLib
     sock.send string, 0
   end
 
-  def add_client server_sid, sid, nick, modes, user, host, real
+  def add_client server_sid, sid, server, nick, modes, user, host, real, account = "*"
     @bots.each { |bot| return -1 if bot["nick"] == nick }
 
     User.establish_connection(@db)
@@ -27,16 +27,16 @@ class IRCLib
     db_add.CTime    = Time.now.to_i
     db_add.UModes   = modes
     db_add.Ident    = user
-    db_add.CHost    = host
-    db_add.IP       = "255.255.255.255"
+    db_add.CHost    = "*"
+    db_add.IP       = 0
     db_add.UID      = sid
     db_add.Host     = host
-    db_add.Server   = "rps"
-    db_add.NickServ = "User"
+    db_add.Server   = server
+    db_add.NickServ = account
     db_add.save
     User.connection.disconnect!
 
-    send_data @name, @sock, ":#{server_sid} EUID #{nick} 2 #{Time.now.to_i} #{modes} #{user} #{host} 0 #{sid} * * :#{real}\r\n"
+    send_data @name, @sock, ":#{server_sid} EUID #{nick} 2 #{Time.now.to_i} #{modes} #{user} #{host} 0 #{sid} * #{account} :#{real}\r\n"
 
     hash = {"name" => @name, "sock" => @sock, "nick" => nick, "user" => user, "host" => host, "sid" => sid, "server_sid" => server_sid, "real" => real, "modes" => modes}
     @bots.push(hash)
@@ -84,7 +84,18 @@ class IRCLib
   end
 
   def notice sid, target, message
-    send_data @name, @sock, ":#{sid} NOTICE #{target} :#{message}\r\n"
+    data = message.split("\n")
+    if data.nil?
+      message.scan(/.{1,500}/m).each { |x| send_data @name, @sock, ":#{sid} NOTICE #{target} :#{x}\r\n" }
+    else
+      data.each { |d|
+        if d.is_a? String
+          d.scan(/.{1,500}/m).each { |x| send_data @name, @sock, ":#{sid} NOTICE #{target} :#{x}\r\n" }
+        else
+          d.each { |f| f.scan(/.{1,500}/m).each { |x| send_data @name, @sock, ":#{sid} NOTICE #{target} :#{x}\r\n" } }
+        end
+      }
+    end
   end
 
   def wallop sid, message
@@ -93,6 +104,64 @@ class IRCLib
 
   def squit sid, message
     send_data @name, @sock, "SQUIT #{sid} :#{message}\r\n"
+  end
+
+  def ts6_fnc sid, newnick, uobj
+    send_data @name, @sock, ":#{sid} ENCAP #{uobj["Server"]} RSFNC #{uobj["UID"]} #{newnick} #{Time.now.to_i} #{uobj["CTime"]}\r\n"
+    change_nick newnick, uobj["UID"]
+  end
+
+  def kill sobj, uid, message
+    send_data @name, @sock, ":#{sobj["UID"]} KILL #{uid} :#{sobj["Host"]}!#{sobj["Nick"]} (#{message})\r\n"
+    delete_user uid
+  end
+
+  def get_user_channels uid
+    UserInChannel.establish_connection(@db)
+    data = UserInChannel.where("User = ?", uid)
+    chans = []
+    data.each { |i|
+      pfx = ""
+      if !i["Modes"].empty?
+        i["Modes"].split(//).each { |x|
+          case x
+          when "v"
+            pfx += "+"
+          when "h"
+            pfx += "%"
+          when "o"
+            pfx += "@"
+          when "a"
+            pfx += "&"
+          when "q"
+            pfx += "~"
+          end
+        }
+      end
+      chans << pfx+i["Channel"].to_s
+    }
+    UserInChannel.connection.disconnect!
+    return chans
+  end
+
+  def delete_user uid
+    User.establish_connection(@db)
+    user = User.where('UID = ?', uid)
+    user.delete_all
+
+    UserInChannel.establish_connection(@db)
+    channel = UserInChannel.where("User = ?", uid)
+    channel.delete_all
+    User.connection.disconnect!
+    UserInChannel.connection.disconnect!
+  end
+
+  def change_nick nick, uid
+    User.establish_connection(@db)
+    nickd = User.sanitize nick
+    nickuid = User.sanitize uid
+    User.connection.execute("UPDATE `users` SET `Nick` = #{nickd} WHERE `UID` = #{nickuid};")
+    User.connection.disconnect!
   end
 
   def get_uid_object uid

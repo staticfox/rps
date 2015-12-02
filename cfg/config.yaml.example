@@ -41,16 +41,17 @@ connections:
       database: RPS
       pool: 10
 
-debug-channels:
-  limitserv: '#chan1'
-  bot: '#chan2'
-  moduleserv: '#chan3'
-
-
-control:
-  - channel: "#chan1"
-
-idle:
-  - channel: "#chan1"
-  - channel: "#chan2"
-  - channel: "#chan3"
+# Your modules
+# example, moduleserv:
+# NOTE: must be lowercase
+exmaple:
+  nick: ExampleServ
+  user: service
+  host: whatever.net
+  real: Service
+  modes: +Sio
+  account: Example
+  # Separated by comma
+  debug_channels: '#logging1'
+  idle_channels: '#idle1,#idle2,#idle3'
+  control_channels: '#control'
