@@ -176,7 +176,7 @@ class IRCLib
     User.establish_connection(@db)
     nickd = User.sanitize nick
     nickuid = User.sanitize uid
-    User.connection.execute("UPDATE `users` SET `Nick` = #{nickd} WHERE `UID` = #{nickuid};")
+    User.connection.execute("UPDATE `users` SET `Nick` = #{nickd}, `CTime` = '#{Time.new.to_i}' WHERE `UID` = #{nickuid};")
     User.connection.disconnect!
   end
 
