@@ -1,2 +1,3 @@
 cfg/config.yaml
+cfg/database.yml
 logs/*.log*

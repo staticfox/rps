@@ -45,7 +45,7 @@ class BotClient
   end
 
   def signup_channel channel
-    BotChannel.establish_connection(@config["connections"]["databases"]["test"])
+    BotChannel.establish_connection(@db)
     query = BotChannel.new
     query.Channel = channel.downcase
     query.save
@@ -54,7 +54,7 @@ class BotClient
   end
 
   def remove_channel channel
-    BotChannel.establish_connection(@config["connections"]["databases"]["test"])
+    BotChannel.establish_connection(@db)
     query = BotChannel.where('Channel = ?', channel.downcase)
     (BotChannel.connection.disconnect!; return false) if query.count == 0
     query.delete_all
@@ -64,7 +64,7 @@ class BotClient
   end
 
   def join_channels
-    BotChannel.establish_connection(@config["connections"]["databases"]["test"])
+    BotChannel.establish_connection(@db)
     queries = BotChannel.select(:Channel)
     return if queries.count == 0
     queries.each do |query|
@@ -145,16 +145,18 @@ class BotClient
     @assigned_channels = []
 
     @config = c.Get
+
     @bot = @config["bot"]
     @parameters = @config["connections"]["clients"]["irc"]["parameters"]
     @client_sid = "#{@parameters["sid"]}000003"
     @initialized = false
-
+    @db = @config["connections"]["databases"]["test"]
     @e.on_event do |type, name, sock|
       if type == "IRCClientInit"
         @config = @c.Get
         @bot = @config["bot"]
-        @irc = IRCLib.new name, sock, @config["connections"]["databases"]["test"]
+        @db  = @config["connections"]["databases"]["test"]
+        @irc = IRCLib.new name, sock, @db
         connect_client
         sleep 1
         join_channels
@@ -167,7 +169,8 @@ class BotClient
         if !@initialized
           @config = @c.Get
           @bot = @config["bot"]
-          @irc = IRCLib.new hash["name"], hash["sock"], @config["connections"]["databases"]["test"]
+          @db  = @config["connections"]["databases"]["test"]
+          @irc = IRCLib.new hash["name"], hash["sock"], @db
           connect_client
           sleep 1
           join_channels

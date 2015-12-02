@@ -289,6 +289,14 @@ class IRCLib
     return false
   end
 
+  def get_account_from_uid uid
+    uid_object = get_uid_object uid
+    return false if !uid_object
+
+    return false if uid_object["NickServ"] == '*'
+    return uid_object["NickServ"]
+  end
+
   def get_chan_info channel
     cd = {}
     Channel.establish_connection(@db)

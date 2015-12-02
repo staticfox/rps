@@ -1,0 +1,17 @@
+# Used for rake
+default: &default
+  adapter: mysql
+  pool: 10
+  timeout: 5000
+  username: 
+  password: 
+  database: 
+
+development:
+  <<: *default
+
+test:
+  <<: *default
+
+production:
+  <<: *default

@@ -4,9 +4,159 @@ require "date"
 
 require_relative "../../libs/irc"
 
+class RootservAccess < ActiveRecord::Base
+end
+
 class RootservCommands
 
   @irc = nil
+
+  def get_flags account
+    RootservAccess.establish_connection(@db)
+    query = RootservAccess.where(name: account.downcase)
+    (RootservAccess.connection.disconnect!; return false) if query.count == 0
+    query.each { |q|
+      RootservAccess.connection.disconnect!
+      return q["flags"].to_s
+    }
+    return false
+  end
+
+  def has_entry account
+    RootservAccess.establish_connection(@db)
+    query = RootservAccess.where(name: account.downcase)
+    (RootservAccess.connection.disconnect!; return false) if query.count == 0
+    query.each { |q|
+      RootservAccess.connection.disconnect!
+      return q
+    }
+    return false
+  end
+
+  def has_flag account, flags
+    our_flags = get_flags account
+    return false if !our_flags
+
+    flags.split(//).each { |f| return true if our_flags.include? f }
+    return false
+  end
+
+  def has_flags account
+    flags = get_flags account
+    return false if !flags
+    return flags
+  end
+
+  def handle_access_add hash
+    target = hash["from"]
+
+    params = hash["parameters"].split(' ')
+
+    if params[1].nil? or params[1].empty?
+      return @irc.notice @client_sid, target, "User not specified"
+    end
+
+    if params[2].nil? or params[2].empty?
+      return @irc.notice @client_sid, target, "Flags not specified"
+    end
+
+    newuser  = params[1]
+    newflags = params[2].upcase.split(//).delete_if{|x| x == 'Z'}.sort!
+    newflags = newflags.uniq.join
+
+    if newflags.empty?
+      @irc.notice @client_sid, target, "Flags not specified. Note: Z may not be distributed."
+      return
+    end
+
+    if !has_entry newuser
+      RootservAccess.establish_connection(@db)
+      query = RootservAccess.new
+      query.name  = newuser
+      query.flags = newflags
+      query.added_by = @irc.get_account_from_uid target
+      query.added = Time.new.to_i
+      query.save
+      RootservAccess.connection.disconnect!
+      @irc.notice @client_sid, target, "Added #{newuser} with flags #{newflags}"
+    else
+      @irc.notice @client_sid, target, "#{newuser} already has access to #{@rs["nick"]}"
+    end
+  end
+
+  def handle_access_list hash
+    target = hash["from"]
+    @irc.notice @client_sid, target, "#{@rs["nick"]} access list:"
+    @irc.notice @client_sid, target, " "
+    RootservAccess.establish_connection(@db)
+    RootservAccess.all.each do |user|
+      @irc.notice @client_sid, target, "#{user[:id]}: \x02#{user[:name]}\x02 with flags \x02#{user[:flags]}\x02"
+    end
+    @irc.notice @client_sid, target, " "
+    @irc.notice @client_sid, target, "End of access list"
+    RootservAccess.connection.disconnect!
+  end
+
+  def handle_access_edit hash
+    target = hash["from"]
+
+    params = hash["parameters"].split(' ')
+
+    if params[1].nil? or params[1].empty?
+      return @irc.notice @client_sid, target, "User not specified"
+    end
+
+    if params[2].nil? or params[2].empty?
+      return @irc.notice @client_sid, target, "Flags not specified"
+    end
+
+    newuser  = params[1]
+    newflags = params[2].upcase.split(//).delete_if{|x| x == 'Z'}.sort!
+    newflags = newflags.uniq.join
+
+    if newflags.empty?
+      @irc.notice @client_sid, target, "Flags not specified. Note: Z may not be distributed."
+      return
+    end
+
+    if has_entry newuser
+      RootservAccess.establish_connection(@db)
+      query = RootservAccess.where(name: newuser).first
+      query.flags = newflags
+      query.modified = Time.new.to_i
+      query.save
+      RootservAccess.connection.disconnect!
+      @irc.notice @client_sid, target, "Changed #{newuser}'s flags to #{newflags}"
+    else
+      @irc.notice @client_sid, target, "#{newuser} does not have access to #{@rs["nick"]}"
+    end
+  end
+
+  def handle_access_del hash
+    target = hash["from"]
+
+    params = hash["parameters"].split(' ')
+
+    if params[1].nil? or params[1].empty?
+      return @irc.notice @client_sid, target, "User not specified"
+    end
+
+    olduser = params[1]
+
+    if has_entry olduser
+      if has_flag olduser, 'Z'
+        @irc.notice @client_sid, target, "#{olduser} has the founder flag. Their access cannot be deleted."
+        return
+      end
+      RootservAccess.establish_connection(@db)
+      query = RootservAccess.where(name: olduser)
+      query.delete_all
+      RootservAccess.connection.disconnect!
+      @irc.notice @client_sid, target, "Deleted #{olduser}'s access"
+    else
+      @irc.notice @client_sid, target, "#{olduser} does not have access"
+    end
+  end
 
   def send_data name, sock, string
     time = Time.now
@@ -19,8 +169,41 @@ class RootservCommands
     @rs["control_channels"].split(',').each { |x| @irc.privmsg @client_sid, x, message }
   end
 
+  def handle_access hash
+    target = hash["from"]
+    if !has_flag(@irc.get_account_from_uid(target), 'F')
+      @irc.notice @client_sid, target, "Permission denied."
+      sendto_debug "Denied access to #{@irc.get_nick_from_uid target} [#{__method__.to_s}]"
+      return
+    end
+
+    return @irc.notice @client_sid, target, "Need more parameters" if hash["parameters"].empty?
+
+    params = hash["parameters"].split(' ')
+
+    case params[0].downcase
+    when "list"
+      handle_access_list hash
+    when "add"
+      handle_access_add hash
+    when "edit"
+      handle_access_edit hash
+    when "del"
+      handle_access_del hash
+    else
+      @irc.notice @client_sid, target, "#{params[0].upcase} is an unknown modifier"
+    end
+
+  end
+
   def handle_svsnick hash
     target = hash["from"]
+    if !has_flag(@irc.get_account_from_uid(target), 'FN')
+      @irc.notice @client_sid, target, "Permission denied."
+      sendto_debug "Denied access to #{@irc.get_nick_from_uid target} [#{__method__.to_s}]"
+      return
+    end
+
     return @irc.notice @client_sid, target, "User not specified" if hash["parameters"].empty?
 
     params = hash["parameters"].split(' ')
@@ -38,6 +221,12 @@ class RootservCommands
 
   def handle_kill hash
     target = hash["from"]
+    if !has_flag(@irc.get_account_from_uid(target), 'FK')
+      @irc.notice @client_sid, target, "Permission denied."
+      sendto_debug "Denied access to #{@irc.get_nick_from_uid target} [#{__method__.to_s}]"
+      return
+    end
+
     return @irc.notice @client_sid, target, "User not specified" if hash["parameters"].empty?
 
     params = hash["parameters"].split(' ')
@@ -59,6 +248,12 @@ class RootservCommands
 
   def handle_whois hash
     target = hash["from"]
+    if !has_flag(@irc.get_account_from_uid(target), 'FW')
+      @irc.notice @client_sid, target, "Permission denied."
+      sendto_debug "Denied access to #{@irc.get_nick_from_uid target} [#{__method__.to_s}]"
+      return
+    end
+
     return @irc.notice @client_sid, target, "User not specified" if hash["parameters"].empty?
 
     nick = hash["parameters"].split(' ')[0]
@@ -78,6 +273,12 @@ class RootservCommands
 
   def handle_chaninfo hash
     target = hash["from"]
+    if !has_flag(@irc.get_account_from_uid(target), 'FC')
+      @irc.notice @client_sid, target, "Permission denied."
+      sendto_debug "Denied access to #{@irc.get_nick_from_uid target} [#{__method__.to_s}]"
+      return
+    end
+
     return @irc.notice @client_sid, target, "Channel not specified" if hash["parameters"].empty?
 
     chan = hash["parameters"].split(' ')[0]
@@ -115,12 +316,22 @@ class RootservCommands
 
       @irc.notice @client_sid, target, "***** #{@rs["nick"]} Help *****"
       @irc.notice @client_sid, target, "#{@rs["nick"]} allows for extra control over the network. This is intended for debug use only. i.e. don't abuse #{@rs["nick"]}."
-      @irc.notice @client_sid, target, "For more information on a command, type \x02/msg #{@rs["nick"]} help <command>\x02."
+      @irc.notice @client_sid, target, "For more information on a command, type \x02/msg #{@rs["nick"]} help <command>\x02"
       @irc.notice @client_sid, target, "The following commands are available:"
-      @irc.notice @client_sid, target, "CHANINFO <#channel>         Returns information on the channel"
-      @irc.notice @client_sid, target, "KILL <nick> [message]       Kills a client"
-      @irc.notice @client_sid, target, "SVSNICK <nick> <newnick>    Changes nick's name to newnick"
-      @irc.notice @client_sid, target, "WHOIS <nick>                Returns information on the nick"
+      @irc.notice @client_sid, target, "[F] ACCESS                      Modifies #{@rs["Nick"]}'s access list"
+      @irc.notice @client_sid, target, "[C] CHANINFO <#channel>         Returns information on the channel"
+      @irc.notice @client_sid, target, "[F] FLAGS                       Modifies #{@rs["Nick"]}'s access list"
+      @irc.notice @client_sid, target, "[K] KILL <nick> [message]       Kills a client"
+      @irc.notice @client_sid, target, "[N] SVSNICK <nick> <newnick>    Changes nick's name to newnick"
+      @irc.notice @client_sid, target, "[W] WHOIS <nick>                Returns information on the nick"
+      @irc.notice @client_sid, target, " "
+      myflags = get_flags(@irc.get_account_from_uid target)
+      if !myflags
+        @irc.notice @client_sid, target, "You do not have any flags."
+      else
+        @irc.notice @client_sid, target, "Your flags: #{myflags}"
+      end
+      @irc.notice @client_sid, target, " "
       @irc.notice @client_sid, target, "***** End of Help *****"
 
     when "chaninfo"
@@ -135,6 +346,9 @@ class RootservCommands
     when "whois"
       handle_whois hash
 
+    when "access", "flags"
+      handle_access hash
+
     else
       @irc.notice @client_sid, target, "#{hash["command"].upcase} is an unknown command."
 
@@ -148,6 +362,7 @@ class RootservCommands
     @d = d
 
     @config = c.Get
+    @db = @config["connections"]["databases"]["test"]
     @parameters = @config["connections"]["clients"]["irc"]["parameters"]
     @client_sid = "#{@parameters["sid"]}000004"
     @initialized = false
@@ -156,6 +371,7 @@ class RootservCommands
       if type == "Rootserv-Chat"
         if !@initialized
           @config = @c.Get
+          @db = @config["connections"]["databases"]["test"]
           @rs = @config["rootserv"]
           @irc = IRCLib.new hash["name"], hash["sock"], @config["connections"]["databases"]["test"]
           @initialized = true
