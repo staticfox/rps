@@ -156,6 +156,61 @@ class IRCMsg
     User.connection.disconnect!
   end
 
+  def handle_tb name, sock, data
+    data = data.split(' ')
+    return if data[0] == 'CAPAB'
+    return if data[1] == 'ENCAP'
+    channel = data[2]
+    setat = data[3]
+    setby = data[4]
+    topic = data[5..-1].join(' ')[1..-1]
+
+    return if data.count < 4
+    return if data[4].nil?
+
+    Channel.establish_connection(@config["connections"]["databases"]["test"])
+    nickd = Channel.sanitize setby
+    topicd = Channel.sanitize topic
+    Channel.connection.execute("UPDATE `channels` SET `Topic` = #{topicd}, `Topic_setat` = '#{setat}', `Topic_setby` = #{nickd} WHERE `Channel` = '#{channel}'")
+    Channel.connection.disconnect!
+  end
+
+  def handle_topic name, sock, data
+    data = data.split(' ')
+    uid = data[0][1..-1]
+    channel = data[2]
+    topic = data[3..-1].join(' ')[1..-1]
+    User.establish_connection(@config["connections"]["databases"]["test"])
+
+    user = User.connection.select_all("SELECT * FROM `users` WHERE `UID` = '#{uid}';")
+    uobj = nil
+    user.each { |info|
+      User.connection.disconnect!
+      uobj = info
+    }
+
+    if uobj.nil?
+      setter = "unknown"
+    else
+      if uobj["CHost"] == '*'
+        if uobj["Host"] == '*'
+          uhost = uobj["IP"]
+        else
+          uhost = uobj["Host"]
+        end
+      else
+        uhost = uobj["CHost"]
+      end
+      setter = "#{uobj["Nick"]}!#{uobj["Ident"]}@#{uhost}"
+    end
+
+    Channel.establish_connection(@config["connections"]["databases"]["test"])
+    nickd = Channel.sanitize setter
+    topicd = Channel.sanitize topic
+    Channel.connection.execute("UPDATE `channels` SET `Topic` = #{topicd}, `Topic_setat` = '#{Time.new.to_i}', `Topic_setby` = #{nickd} WHERE `Channel` = '#{channel}'")
+    Channel.connection.disconnect!
+  end
+
   def handle_quit name, sock, data
     data = data.split(' ')
     nick = data[0][1..-1]
@@ -311,6 +366,8 @@ class IRCMsg
         handle_server  name, sock, data if data.include?("SERVER ") || data.include?(" SERVER ")
         handle_kill    name, sock, data if data.include?("KILL ") || data.include?(" KILL ")
         handle_save    name, sock, data if data.include?("SAVE ") || data.include?(" SAVE ")
+        handle_tb      name, sock, data if data.include?(" TB ")
+        handle_topic   name, sock, data if data.include?(" TOPIC ")
       end
     end
   end

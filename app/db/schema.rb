@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2015120220150411) do
+ActiveRecord::Schema.define(version: 2015120220151528) do
 
   create_table "CommandServ_Commands", primary_key: "Number", force: :cascade do |t|
     t.datetime "Date",                   null: false
@@ -30,10 +30,12 @@ ActiveRecord::Schema.define(version: 2015120220150411) do
   end
 
   create_table "channels", primary_key: "Number", force: :cascade do |t|
-    t.integer "CTime",   limit: 8,   null: false
-    t.string  "Channel", limit: 50,  null: false
-    t.string  "Modes",   limit: 25
-    t.string  "Topic",   limit: 255
+    t.integer "CTime",       limit: 8,     null: false
+    t.string  "Channel",     limit: 50,    null: false
+    t.string  "Modes",       limit: 25
+    t.text    "Topic",       limit: 65535
+    t.string  "Topic_setat", limit: 255
+    t.string  "Topic_setby", limit: 255
   end
 
   create_table "limit_serv_channels", id: false, force: :cascade do |t|
