@@ -399,6 +399,28 @@ class RootservCommands
     @irc.notice @client_sid, target, "End of chaninfo"
   end
 
+  def handle_shutdown hash
+    target = hash["from"]
+    if !has_flag(@irc.get_account_from_uid(target), 'FSZ')
+      @irc.notice @client_sid, target, "Permission denied."
+      sendto_debug "Denied access to #{@irc.get_nick_from_uid target} [#{__method__.to_s}]"
+      return
+    end
+
+    if hash["parameters"].empty?
+      shutdownmsg = "Shutdown command received"
+    else
+      shutdownmsg = hash["parameters"]
+    end
+
+    @irc.notice @client_sid, target, "Shutting down."
+    @irc.wallop @client_sid, "\x02#{@irc.get_nick_from_uid target}\x02 used \x02SHUTDOWN\x02"
+    @e.Run "Shutdown", shutdownmsg
+    sleep 0.2
+    @e.Run "Disconnect", "Shutdown command received from #{@irc.get_nick_from_uid target}"
+    abort("Shutdown command received from #{@irc.get_nick_from_uid target}")
+  end
+
   def handle_privmsg hash
     target = hash["from"]
 
@@ -425,6 +447,7 @@ class RootservCommands
       @irc.notice @client_sid, target, "[K] KICK <#channel> <nick>      Kicks a user from a channel"
       @irc.notice @client_sid, target, "[K] KILL <nick> [message]       Kills a client"
       @irc.notice @client_sid, target, "[M] MODE <#channel>             Sets modes on a channel"
+      @irc.notice @client_sid, target, "[S] SHUTDOWN                    Shuts down RPS" # Move to ModuleServ?
       @irc.notice @client_sid, target, "[N] SVSNICK <nick> <newnick>    Changes nick's name to newnick"
       @irc.notice @client_sid, target, "[W] UID <uid>                   Returns information on the UID"
       @irc.notice @client_sid, target, "[W] WHOIS <nick>                Returns information on the nick"
@@ -449,6 +472,9 @@ class RootservCommands
 
     when "chaninfo"
       handle_chaninfo hash
+
+    when "shutdown"
+      handle_shutdown hash
 
     when "svsnick"
       handle_svsnick hash
