@@ -335,11 +335,17 @@ class RootservCommands
       @irc.notice @client_sid, target, "[W] UID <uid>                   Returns information on the UID"
       @irc.notice @client_sid, target, "[W] WHOIS <nick>                Returns information on the nick"
       @irc.notice @client_sid, target, " "
-      myflags = get_flags(@irc.get_account_from_uid target)
-      if !myflags
+      account = @irc.get_account_from_uid target
+
+      if !account
         @irc.notice @client_sid, target, "You do not have any flags."
       else
-        @irc.notice @client_sid, target, "Your flags: #{myflags}"
+        myflags = get_flags account
+        if !myflags
+          @irc.notice @client_sid, target, "You do not have any flags."
+        else
+          @irc.notice @client_sid, target, "Your flags: #{myflags}"
+        end
       end
       @irc.notice @client_sid, target, " "
       @irc.notice @client_sid, target, "***** End of Help *****"
