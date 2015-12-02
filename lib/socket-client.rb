@@ -39,8 +39,10 @@ class SocketClient
         sock = hash["socket"]
 
         begin
-          data = sock.read_nonblock(32768) if ssl
-          data = sock.recv_nonblock(32768) if !ssl
+          # This is an IRC specific thing and *not* RPS.
+          # This will be fixed at some point.
+          data = sock.gets("\r\n") if ssl
+          data = sock.gets("\r\n") if !ssl
         rescue IO::WaitReadable
 
         end
