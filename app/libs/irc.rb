@@ -124,7 +124,6 @@ class IRCLib
 
   def ts6_fnc sid, newnick, uobj
     send_data @name, @sock, ":#{sid} ENCAP #{uobj["Server"]} RSFNC #{uobj["UID"]} #{newnick} #{Time.now.to_i} #{uobj["CTime"]}\r\n"
-    change_nick newnick, uobj["UID"]
   end
 
   def ts6_save sid, uobj
