@@ -367,26 +367,28 @@ class IRCMsg
           handle_numeric name, sock, data, m.match(data)[1]
         end
 
-        handle_chat    name, sock, data if data.include?(" PRIVMSG ") || data.include?(" NOTICE ")
-        handle_ping    name, sock, data if data.include?(" PING ") || data.include?("PING ")
-        handle_sid     name, sock, data if data.include?(" SID ")
-        handle_euid    name, sock, data if data.include?(" EUID ")
-        handle_sjoin   name, sock, data if data.include?(" SJOIN ")
-        handle_quit    name, sock, data if data.include?(" QUIT ")
-        handle_join    name, sock, data if data.include?(" JOIN ") and !data.include?(" SJOIN ")
-        handle_part    name, sock, data if data.include?(" PART ")
-        handle_tmode   name, sock, data if data.include?(" TMODE ")
-        handle_chghost name, sock, data if data.include?(" CHGHOST ")
-        handle_nick    name, sock, data if data.include?(" NICK ")
-        handle_kick    name, sock, data if data.include?(" KICK ")
-        handle_mode    name, sock, data if data.include?(" MODE ")
-        handle_pass    name, sock, data if data.include?("PASS ") || data.include?(" PASS ")
-        handle_server  name, sock, data if data.include?("SERVER ") || data.include?(" SERVER ")
-        handle_kill    name, sock, data if data.include?("KILL ") || data.include?(" KILL ")
-        handle_save    name, sock, data if data.include?("SAVE ") || data.include?(" SAVE ")
-        handle_tb      name, sock, data if data.include?(" TB ")
-        handle_topic   name, sock, data if data.include?(" TOPIC ")
-        handle_su      name, sock, data if data.include?(" SU ")
+        opt = data.upcase.split(' ')
+
+        handle_pass    name, sock, data if opt[0] == "PASS"
+        handle_server  name, sock, data if opt[0] == "SERVER"
+        handle_ping    name, sock, data if opt[0] == "PING"
+        #handle_kill    name, sock, data if opt[1] == "KILL" # Useless?
+        #handle_save    name, sock, data if opt[1] == "SAVE" # Useless?
+        handle_chat    name, sock, data if opt[1] == "PRIVMSG" or opt[1] == "NOTICE"
+        handle_sid     name, sock, data if opt[1] == "SID"
+        handle_euid    name, sock, data if opt[1] == "EUID"
+        handle_sjoin   name, sock, data if opt[1] == "SJOIN"
+        handle_quit    name, sock, data if opt[1] == "QUIT"
+        handle_join    name, sock, data if opt[1] == "JOIN" and opt[1] != "SJOIN"
+        handle_part    name, sock, data if opt[1] == "PART"
+        handle_tmode   name, sock, data if opt[1] == "TMODE"
+        handle_chghost name, sock, data if opt[1] == "CHGHOST"
+        handle_nick    name, sock, data if opt[1] == "NICK"
+        handle_kick    name, sock, data if opt[1] == "KICK"
+        handle_mode    name, sock, data if opt[1] == "MODE"
+        handle_tb      name, sock, data if opt[1] == "TB"
+        handle_topic   name, sock, data if opt[1] == "TOPIC"
+        handle_su      name, sock, data if opt[3] == "SU"
       end
     end
   end
