@@ -412,6 +412,22 @@ class RootservCommands
     @irc.notice @client_sid, target, "End of chaninfo"
   end
 
+  def handle_kline hash
+    target = hash["from"]
+    if !has_flag(@irc.get_account_from_uid(target), 'FUZ')
+      @irc.notice @client_sid, target, "Permission denied."
+      sendto_debug "Denied access to #{@irc.get_nick_from_uid target} [#{__method__.to_s}]"
+      return
+    end
+
+    return @irc.notice @client_sid, target, "IP not specified" if hash["parameters"].empty?
+
+    ip = hash["parameters"].split(' ')[0]
+    @irc.unkline @client_sid, ip
+    @irc.notice @client_sid, target, "UnK/D-Lined #{ip}"
+    @irc.wallop @client_sid, "\x02#{@irc.get_nick_from_uid target}\x02 used \x02UNKLINE\x02 on \x02#{ip}\x02"
+  end
+
   def handle_shutdown hash
     target = hash["from"]
     if !has_flag(@irc.get_account_from_uid(target), 'FSZ')
@@ -463,6 +479,7 @@ class RootservCommands
       @irc.notice @client_sid, target, "[S] SHUTDOWN                    Shuts down RPS" # Move to ModuleServ?
       @irc.notice @client_sid, target, "[N] SVSNICK <nick> <newnick>    Changes nick's name to newnick"
       @irc.notice @client_sid, target, "[W] UID <uid>                   Returns information on the UID"
+      @irc.notice @client_sid, target, "[U] UNKLINE <ip>                Un-Klines the IP address"
       @irc.notice @client_sid, target, "[W] WHOIS <nick>                Returns information on the nick"
       @irc.notice @client_sid, target, " "
       account = @irc.get_account_from_uid target
@@ -506,6 +523,9 @@ class RootservCommands
 
     when "access", "flags"
       handle_access hash
+
+    when "unkline"
+      handle_kline hash
 
     else
       @irc.notice @client_sid, target, "#{hash["command"].upcase} is an unknown command."

@@ -122,6 +122,10 @@ class IRCLib
     send_data @name, @sock, "SQUIT #{sid} :#{message}\r\n"
   end
 
+  def unkline sid, ip
+    send_data @name, @sock, ":#{sid} UNKLINE * * #{ip}\r\n"
+  end
+
   def ts6_fnc sid, newnick, uobj
     send_data @name, @sock, ":#{sid} ENCAP #{uobj["Server"]} RSFNC #{uobj["UID"]} #{newnick} #{Time.now.to_i} #{uobj["CTime"]}\r\n"
   end
