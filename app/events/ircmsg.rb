@@ -322,6 +322,11 @@ class IRCMsg
 
   def handle_tmode name, sock, data
     data = data.split(' ')
+
+    Channel.establish_connection(@config["connections"]["databases"]["test"])
+    cchan = Channel.sanitize data[3]
+
+
     UserInChannel.establish_connection(@config["connections"]["databases"]["test"])
     nchan = UserInChannel.sanitize data[3]
     nmode = UserInChannel.sanitize data[4][1..-1]
