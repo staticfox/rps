@@ -130,7 +130,6 @@ class IRCMsg
     @ircservers.collect { |hash|
       if hash["server"] == "rpsuplink"
         hash["server"] = server
-        puts "set #{hash["SID"]} to #{server}"
       end
     }
   end
@@ -286,6 +285,20 @@ class IRCMsg
     User.connection.disconnect!
   end
 
+  def handle_su name, sock, data
+    data = data.split(' ')
+    User.establish_connection(@config["connections"]["databases"]["test"])
+    if data.count == 5
+      euid = User.sanitize data[4][1..-1]
+      acct = User.sanitize '*'
+    else
+      euid = User.sanitize data[4]
+      acct = User.sanitize data[5][1..-1]
+    end
+    User.connection.execute("UPDATE `users` SET `NickServ` = #{acct} WHERE `UID` = #{euid};")
+    User.connection.disconnect!
+  end
+
   def handle_tmode name, sock, data
     data = data.split(' ')
     UserInChannel.establish_connection(@config["connections"]["databases"]["test"])
@@ -373,6 +386,7 @@ class IRCMsg
         handle_save    name, sock, data if data.include?("SAVE ") || data.include?(" SAVE ")
         handle_tb      name, sock, data if data.include?(" TB ")
         handle_topic   name, sock, data if data.include?(" TOPIC ")
+        handle_su      name, sock, data if data.include?(" SU ")
       end
     end
   end
