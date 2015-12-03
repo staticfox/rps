@@ -54,8 +54,9 @@ class IRCLib
     User.establish_connection(@db)
     user = User.connection.select_all("SELECT * FROM `users` WHERE `Nick` = '#{nick}';")
 
-    user.each { |info|
-      @bots.each { |bot|
+    @bots.each { |bot|
+      user.each { |info|
+        puts "botnick is #{bot["nick"]} and info is #{info["Nick"]}"
         if bot["nick"] == info["Nick"]
           if bot["server"] != info["Server"]
             server_kill bot["server_sid"], info["UID"], bot["server"], "Nick collision with services (new)"

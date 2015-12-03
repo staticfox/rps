@@ -119,6 +119,12 @@ class ModuleServClient
       end
     end
 
+    @e.on_event do |type, nick, server|
+      if type == "EUID"
+        @irc.collide nick, server
+      end
+    end
+
     @e.on_event do |type, hash|
       if type == "IRCChat"
         if !@initialized

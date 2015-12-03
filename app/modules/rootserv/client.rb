@@ -32,10 +32,6 @@ class RootservClient
     @rs["control_channels"].split(',').each { |x| @irc.privmsg @client_sid, x, message }
   end
 
-  def handle_euid nick, server
-    @irc.collide nick, server
-  end
-
   def handle_privmsg hash
     target = hash["target"]
     target = hash["from"] if target == @client_sid
@@ -71,9 +67,9 @@ class RootservClient
       end
     end
 
-    @e.on_event do |type, hash, server|
+    @e.on_event do |type, nick, server|
       if type == "EUID"
-        handle_euid hash, server
+        @irc.collide nick, server
       end
     end
 
