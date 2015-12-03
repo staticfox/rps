@@ -134,6 +134,27 @@ class IRCMsg
     }
   end
 
+  def handle_squit name, sock, data
+    server = data.split(' ')[1]
+    sname = ""
+    @ircservers.each { |s| sname = s["server"] if server == s["SID"] }
+    @ircservers.delete_if { |s| sname == s["server"] }
+    if sname.empty?
+      puts "SENDTO_DEBUG UNKNOWN SERVER"
+      return
+    end
+    User.establish_connection(@config["connections"]["databases"]["test"])
+    UserInChannel.establish_connection(@config["connections"]["databases"]["test"])
+    user = User.where("Server = ?", sname)
+    user.each { |q|
+      uc = UserInChannel.where("User = ?", q["UID"])
+      uc.delete_all
+    }
+    user.delete_all
+    User.connection.disconnect!
+    UserInChannel.connection.disconnect!
+  end
+
   def handle_kill name, sock, data
     nick = data.split(' ')[2]
 
@@ -372,6 +393,7 @@ class IRCMsg
         handle_pass    name, sock, data if opt[0] == "PASS"
         handle_server  name, sock, data if opt[0] == "SERVER"
         handle_ping    name, sock, data if opt[0] == "PING"
+        handle_squit   name, sock, data if opt[0] == "SQUIT"
         #handle_kill    name, sock, data if opt[1] == "KILL" # Useless?
         #handle_save    name, sock, data if opt[1] == "SAVE" # Useless?
         handle_chat    name, sock, data if opt[1] == "PRIVMSG" or opt[1] == "NOTICE"
