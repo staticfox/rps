@@ -199,17 +199,20 @@ class IRCLib
         i["Modes"].split(//).each { |x|
           case x
           when "v"
-            pfx += "+"
+            pfx += "+" if pfx.empty?
           when "h"
-            pfx += "%"
+            pfx += "%" if pfx.empty?
           when "o"
-            pfx += "@"
+            pfx += "@" if pfx.empty?
           when "a"
-            pfx += "&"
+            pfx += "&" if pfx.empty?
           when "q"
-            pfx += "~"
+            pfx += "~" if pfx.empty?
           end
         }
+        if get_chan_info(i["Channel"])["Modes"].include? 's'
+          pfx = '*'+pfx
+        end
       end
       chans << pfx+i["Channel"].to_s
     }
@@ -383,21 +386,21 @@ class IRCLib
         query["Modes"].split(//).each { |x|
           case x
           when "v"
-            pfx += "+"
+            pfx += "+" if pfx.empty?
           when "h"
-            pfx += "%"
+            pfx += "%" if pfx.empty?
           when "o"
-            pfx += "@"
+            pfx += "@" if pfx.empty?
           when "a"
-            pfx += "&"
+            pfx += "&" if pfx.empty?
           when "q"
-            pfx += "~"
+            pfx += "~" if pfx.empty?
           end
         }
       end
       uobj = get_uid_object query["User"]
       next if !uobj
-      users << "#{pfx}#{uobj["Nick"]}!#{uobj["Ident"]}@#{uobj["IP"]}"
+      users << "#{pfx}#{uobj["Nick"]} [#{uobj["Ident"]}@#{uobj["IP"]}]"
     }
 
     # FIXME
