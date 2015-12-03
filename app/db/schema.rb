@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2015120220151820) do
+ActiveRecord::Schema.define(version: 2015120320151832) do
 
   create_table "CommandServ_Commands", primary_key: "Number", force: :cascade do |t|
     t.datetime "Date",                   null: false
@@ -79,6 +79,7 @@ ActiveRecord::Schema.define(version: 2015120220151820) do
     t.string "Host",     limit: 100,   null: false
     t.text   "Server",   limit: 65535, null: false
     t.string "NickServ", limit: 25,    null: false
+    t.string "certfp",   limit: 255
   end
 
 end

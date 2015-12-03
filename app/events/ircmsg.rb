@@ -320,6 +320,14 @@ class IRCMsg
     User.connection.disconnect!
   end
 
+  def handle_certfp name, sock, data
+    data = data.split(' ')
+    User.establish_connection(@config["connections"]["databases"]["test"])
+    user = User.find_by(UID: data[0][1..-1])
+    user.update(certfp: data[4][1..-1])
+    User.connection.disconnect!
+  end
+
   def handle_tmode name, sock, data
     data = data.split(' ')
 
@@ -416,6 +424,7 @@ class IRCMsg
         handle_tb      name, sock, data if opt[1] == "TB"
         handle_topic   name, sock, data if opt[1] == "TOPIC"
         handle_su      name, sock, data if opt[3] == "SU"
+        handle_certfp  name, sock, data if opt[1] == "ENCAP" and opt[3] == "CERTFP"
       end
     end
   end
