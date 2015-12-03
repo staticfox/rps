@@ -64,8 +64,8 @@ class IRCMsg
       server = hash["server"]
     end
 
-    user.Server = "irc.geeksirc.net" if user.Server.nil?
-    server = "irc.geeksirc.net" if server.nil?
+    user.Server = "unknown.server" if user.Server.nil?
+    server = "unknown.server" if server.nil?
     user.NickServ = data[11]
     user.save
     User.connection.disconnect!
