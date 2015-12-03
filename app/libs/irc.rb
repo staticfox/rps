@@ -144,6 +144,15 @@ class IRCLib
     send_data @name, @sock, ":#{sid} UNKLINE * * #{ip}\r\n"
   end
 
+  def chghost serversid, uid, host
+    send_data @name, @sock, ":#{serversid} CHGHOST #{uid} #{host}\r\n"
+    User.establish_connection(@db)
+    uidd = User.sanitize uid
+    hostd = User.sanitize host
+    User.connection.execute("UPDATE `users` SET `CHost` = #{hostd} WHERE `UID` = #{uidd};")
+    User.connection.disconnect!
+  end
+
   def ts6_fnc sid, newnick, uobj
     send_data @name, @sock, ":#{sid} ENCAP #{uobj["Server"]} RSFNC #{uobj["UID"]} #{newnick} #{Time.now.to_i} #{uobj["CTime"]}\r\n"
   end

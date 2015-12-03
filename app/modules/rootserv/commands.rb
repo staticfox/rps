@@ -247,6 +247,46 @@ class RootservCommands
     end
   end
 
+  def handle_svshost hash
+    target = hash["from"]
+    if !has_flag(@irc.get_account_from_uid(target), 'FVZ')
+      @irc.notice @client_sid, target, "Permission denied."
+      sendto_debug "Denied access to #{@irc.get_nick_from_uid target} [#{__method__.to_s}]"
+      return
+    end
+
+    params = hash["parameters"].split(' ')
+
+    return @irc.notice @client_sid, target, "User not specified" if hash["parameters"].empty?
+    targetobj = @irc.get_nick_object params[0]
+
+    return @irc.notice @client_sid, target, "Could not find user #{params[0]}" if !targetobj
+    our_server = @irc.get_uid_object @client_sid
+
+    return @irc.notice @client_sid, target, "Host not specified" if params.count < 2
+
+    newhost = params[1]
+
+    if our_server["Server"] == targetobj["Server"]
+      return @irc.notice @client_sid, target, "No!"
+    end
+
+    @parameters["ulines"].each { |x|
+      if targetobj["Server"].downcase == x["name"].downcase
+        return @irc.notice @client_sid, target, "No!"
+      end
+    }
+
+    if newhost.length > 62
+      @irc.notice @client_sid, target, "Host lengths cannot be greater than 62"
+      return
+    end
+
+    @irc.chghost @parameters["sid"], targetobj["UID"], newhost
+    @irc.notice @client_sid, target, "Changed #{targetobj["Nick"]}'s host to #{newhost}"
+    @irc.wallop @client_sid, "\x02#{@irc.get_nick_from_uid target}\x02 used \x02SVSHOST\x02 on \x02#{targetobj["Nick"]}\x02 => \x02#{newhost}\x02"
+  end
+
   def handle_kill hash
     target = hash["from"]
     if !has_flag(@irc.get_account_from_uid(target), 'FKZ')
@@ -260,7 +300,6 @@ class RootservCommands
     params = hash["parameters"].split(' ')
 
     our_server = @irc.get_uid_object @client_sid
-
     targetobj = @irc.get_nick_object params[0]
     sourceobj = @irc.get_uid_object @client_sid
     return @irc.notice @client_sid, target, "Could not find user #{params[0]}" if !targetobj
@@ -372,13 +411,18 @@ class RootservCommands
     return @irc.notice @client_sid, target, "Could not find #{uid ? "uid" : "user"} #{nick}" if !targetobj
 
     @irc.notice @client_sid, target, "Information for \x02#{nick}\x02:"
+    @irc.notice @client_sid, target, " "
     @irc.notice @client_sid, target, "UID: #{targetobj["UID"]}"
     @irc.notice @client_sid, target, "Signed on: #{DateTime.strptime(targetobj["CTime"], '%s').in_time_zone('America/New_York').strftime("%A %B %d %Y @ %l:%M %P %z")} (#{ChronicDuration.output(Time.new.to_i - targetobj["CTime"].to_i)} ago)"
+    @irc.notice @client_sid, target, "SSL: #{targetobj["UModes"].include?('Z') ? "Yes" : "No"}"
     @irc.notice @client_sid, target, "Real nick!user@host: #{targetobj["Nick"]}!#{targetobj["Ident"]}@#{targetobj["Host"] == "*" ? targetobj["IP"] : targetobj["Host"]}"
+    @irc.notice @client_sid, target, "IP: #{targetobj["IP"]}"
+    @irc.notice @client_sid, target, "Cloaked host: #{targetobj["CHost"]}"
     @irc.notice @client_sid, target, "Server: #{targetobj["Server"]}"
     @irc.notice @client_sid, target, "Services account: #{targetobj["NickServ"] == "*" ? "Not logged in." : targetobj["NickServ"]}"
     @irc.notice @client_sid, target, "User modes: #{targetobj["UModes"]}"
     @irc.notice @client_sid, target, "Channels: #{@irc.get_user_channels(targetobj["UID"]).join(' ')}"
+    @irc.notice @client_sid, target, " "
     @irc.notice @client_sid, target, "End of whois information"
   end
 
@@ -489,6 +533,7 @@ class RootservCommands
       @irc.notice @client_sid, target, "[K] KILL <nick> [message]       Kills a client"
       @irc.notice @client_sid, target, "[M] MODE <#channel>             Sets modes on a channel"
       @irc.notice @client_sid, target, "[S] SHUTDOWN                    Shuts down RPS" # Move to ModuleServ?
+      @irc.notice @client_sid, target, "[V] SVSHOST <nick> <newhost>    Changes nick's hostname"
       @irc.notice @client_sid, target, "[N] SVSNICK <nick> <newnick>    Changes nick's name to newnick"
       @irc.notice @client_sid, target, "[W] UID <uid>                   Returns information on the UID"
       @irc.notice @client_sid, target, "[U] UNKLINE <ip>                Un-Klines the IP address"
@@ -518,6 +563,8 @@ class RootservCommands
       handle_shutdown hash
     when "svsnick"
       handle_svsnick hash
+    when "svshost"
+      handle_svshost hash
     when "kick"
       handle_kick hash
     when "kill"
