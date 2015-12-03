@@ -61,12 +61,16 @@ class IRCMsg
     user.Host   = data[10] ? data[10] : ""
     @ircservers.each do |hash|
       user.Server = hash["server"] if data[0][1..-1] == hash["SID"]
+      server = hash["server"]
     end
 
     user.Server = "irc.geeksirc.net" if user.Server.nil?
+    server = "irc.geeksirc.net" if server.nil?
     user.NickServ = data[11]
     user.save
     User.connection.disconnect!
+
+    @e.Run "EUID", data[2], server
   end
 
   def handle_sjoin name, sock, data

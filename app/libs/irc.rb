@@ -38,7 +38,7 @@ class IRCLib
 
     send_data @name, @sock, ":#{server_sid} EUID #{nick} 2 #{Time.now.to_i} #{modes} #{user} #{host} 0 #{sid} * * :#{real}\r\n"
 
-    hash = {"name" => @name, "sock" => @sock, "nick" => nick, "user" => user, "host" => host, "sid" => sid, "server_sid" => server_sid, "real" => real, "modes" => modes}
+    hash = {"name" => @name, "sock" => @sock, "nick" => nick, "user" => user, "host" => host, "sid" => sid, "server" => server, "server_sid" => server_sid, "real" => real, "modes" => modes}
     @bots.push(hash)
   end
 
@@ -48,6 +48,24 @@ class IRCLib
       @bots.delete bot if bot["sid"] == sid
     }
     return -1
+  end
+
+  def collide nick, server
+    User.establish_connection(@db)
+    user = User.connection.select_all("SELECT * FROM `users` WHERE `Nick` = '#{nick}';")
+
+    user.each { |info|
+      @bots.each { |bot|
+        if bot["nick"] == info["Nick"]
+          if bot["server"] != info["Server"]
+            server_kill bot["server_sid"], info["UID"], bot["server"], "Nick collision with services (new)"
+            nick bot["sid"], bot["nick"]
+          end
+        end
+      }
+    }
+
+    User.connection.disconnect!
   end
 
   def server_set_mode server_sid, string
@@ -135,6 +153,11 @@ class IRCLib
     change_nick uobj["UID"], uobj["UID"]
   end
 
+  def server_kill sid, uid, server_name, reason
+    send_data @name, @sock, ":#{sid} KILL #{uid} :#{server_name} (#{reason})\r\n"
+    delete_user uid
+  end
+
   def kill sobj, uid, message
     send_data @name, @sock, ":#{sobj["UID"]} KILL #{uid} :#{sobj["Host"]}!#{sobj["Nick"]} (#{message})\r\n"
     delete_user uid
@@ -143,6 +166,11 @@ class IRCLib
   def kick ouruid, theiruid, channel, message
     send_data @name, @sock, ":#{ouruid} KICK #{channel} #{theiruid} :#{message}\r\n"
     remove_user_from_channel theiruid, channel
+  end
+
+  def nick sid, newnick
+    send_data @name, @sock, ":#{sid} NICK #{newnick} :#{Time.new.to_i}"
+    change_nick newnick, sid
   end
 
   def remove_user_from_channel uid, channel
