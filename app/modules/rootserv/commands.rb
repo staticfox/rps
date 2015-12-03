@@ -259,9 +259,21 @@ class RootservCommands
 
     params = hash["parameters"].split(' ')
 
+    our_server = @irc.get_uid_object @client_sid
+
     targetobj = @irc.get_nick_object params[0]
     sourceobj = @irc.get_uid_object @client_sid
     return @irc.notice @client_sid, target, "Could not find user #{params[0]}" if !targetobj
+
+    if our_server["Server"] == targetobj["Server"]
+      return @irc.notice @client_sid, target, "No!"
+    end
+
+    @parameters["ulines"].each { |x|
+      if targetobj["Server"].downcase == x["name"].downcase
+        return @irc.notice @client_sid, target, "No!"
+      end
+    }
 
     if params.count == 1
       killmsg = "Requested"

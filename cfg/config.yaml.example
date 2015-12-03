@@ -28,6 +28,9 @@ connections:
         server_name: Serv1-Bot.GeeksIRC.net
         server_description: Serv1 Bots
         server_password: 
+        ulines:
+          - name: services.whatever.net
+          - name: services2.whatever.net
 
   servers:
 
