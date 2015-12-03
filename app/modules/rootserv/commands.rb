@@ -34,6 +34,7 @@ class RootservCommands
   end
 
   def has_flag account, flags
+    return false if !account
     our_flags = get_flags account
     return false if !our_flags
 
