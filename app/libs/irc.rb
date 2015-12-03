@@ -56,9 +56,8 @@ class IRCLib
 
     @bots.each { |bot|
       user.each { |info|
-        puts "botnick is #{bot["nick"]} and info is #{info["Nick"]}"
-        if bot["nick"] == info["Nick"]
-          if bot["server"] != info["Server"]
+        if bot["nick"].downcase == info["Nick"].downcase
+          if bot["server"].downcase != info["Server"].downcase
             server_kill bot["server_sid"], info["UID"], bot["server"], "Nick collision with services (new)"
             nick bot["sid"], bot["nick"]
           end
