@@ -27,10 +27,10 @@ class IRCLib
     db_add.CTime    = Time.now.to_i
     db_add.UModes   = modes
     db_add.Ident    = user
-    db_add.CHost    = "*"
+    db_add.CHost    = host
     db_add.IP       = 0
     db_add.UID      = sid
-    db_add.Host     = host
+    db_add.Host     = '*'
     db_add.Server   = server
     db_add.NickServ = '*'
     db_add.save
@@ -210,9 +210,9 @@ class IRCLib
             pfx += "~" if pfx.empty?
           end
         }
-        if get_chan_info(i["Channel"])["Modes"].include? 's'
-          pfx = '*'+pfx
-        end
+      end
+      if get_chan_info(i["Channel"])["Modes"].include? 's'
+        pfx = '*'+pfx
       end
       chans << pfx+i["Channel"].to_s
     }
@@ -400,7 +400,8 @@ class IRCLib
       end
       uobj = get_uid_object query["User"]
       next if !uobj
-      users << "#{pfx}#{uobj["Nick"]} [#{uobj["Ident"]}@#{uobj["IP"]}]"
+      ip = uobj["IP"] != '0' ? uobj["IP"] : uobj["CHost"]
+      users << "#{pfx}#{uobj["Nick"]} [#{uobj["Ident"]}@#{ip}]"
     }
 
     # FIXME
