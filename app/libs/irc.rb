@@ -421,6 +421,38 @@ class IRCLib
     return channellist
   end
 
+  def get_channel_total
+    Channel.establish_connection(@db)
+    channels = Channel.select(:Channel).count
+    Channel.connection.disconnect!
+    return channels
+  end
+
+  def get_user_total
+    User.establish_connection(@db)
+    users = User.select(:Nick).count
+    User.connection.disconnect!
+    return users
+  end
+
+  def get_oper_total
+    i = 0
+    User.establish_connection(@db)
+    User.select(:UModes).each { |d|
+      i+=1 if d["UModes"].include? 'o' or d["UModes"].include? 'O' and !d["UModes"].include? 'S'
+    }
+    User.connection.disconnect!
+    return i
+  end
+
+  def get_services_total
+    i = 0
+    User.establish_connection(@db)
+    User.select(:UModes).each { |d| i+=1 if d["UModes"].include? 'S' }
+    User.connection.disconnect!
+    return i
+  end
+
   def does_channel_exist channel
     Channel.establish_connection(@db)
     channel = Channel.where('Channel = ?', channel.downcase)

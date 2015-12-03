@@ -428,6 +428,18 @@ class RootservCommands
     @irc.wallop @client_sid, "\x02#{@irc.get_nick_from_uid target}\x02 used \x02UNKLINE\x02 on \x02#{ip}\x02"
   end
 
+  def handle_stats hash
+    target = hash["from"]
+
+    @irc.notice @client_sid, target, "\x02Stats:\x02"
+    @irc.notice @client_sid, target, "Channels: #{@irc.get_channel_total}"
+    @irc.notice @client_sid, target, "Users: #{@irc.get_user_total}"
+    @irc.notice @client_sid, target, "Opers: #{@irc.get_oper_total}"
+    @irc.notice @client_sid, target, "Services: #{@irc.get_services_total}"
+    @irc.notice @client_sid, target, " "
+    @irc.notice @client_sid, target, "End of stats"
+  end
+
   def handle_shutdown hash
     target = hash["from"]
     if !has_flag(@irc.get_account_from_uid(target), 'FSZ')
@@ -481,6 +493,7 @@ class RootservCommands
       @irc.notice @client_sid, target, "[W] UID <uid>                   Returns information on the UID"
       @irc.notice @client_sid, target, "[U] UNKLINE <ip>                Un-Klines the IP address"
       @irc.notice @client_sid, target, "[W] WHOIS <nick>                Returns information on the nick"
+      @irc.notice @client_sid, target, "[]  STATS                       Return stats on RPS and the network"
       @irc.notice @client_sid, target, " "
       account = @irc.get_account_from_uid target
 
@@ -499,33 +512,26 @@ class RootservCommands
 
     when "mode"
       handle_mode hash
-
     when "chaninfo"
       handle_chaninfo hash
-
     when "shutdown"
       handle_shutdown hash
-
     when "svsnick"
       handle_svsnick hash
-
     when "kick"
       handle_kick hash
-
     when "kill"
       handle_kill hash
-
     when "whois"
       handle_whois hash
-
     when "uid"
       handle_whois hash, true
-
     when "access", "flags"
       handle_access hash
-
     when "unkline"
       handle_kline hash
+    when "stats"
+      handle_stats hash
 
     else
       @irc.notice @client_sid, target, "#{hash["command"].upcase} is an unknown command."
