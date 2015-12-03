@@ -89,7 +89,7 @@ class IRCLib
     userinchannel = UserInChannel.new
     userinchannel.Channel = room
     userinchannel.User = sid
-    userinchannel.Modes = ""
+    userinchannel.Modes = "o"
     userinchannel.save
     UserInChannel.connection.disconnect!
   end
