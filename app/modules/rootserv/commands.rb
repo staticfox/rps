@@ -13,24 +13,17 @@ class RootservCommands
 
   def get_flags account
     RootservAccess.establish_connection(@db)
-    query = RootservAccess.where(name: account.downcase)
-    (RootservAccess.connection.disconnect!; return false) if query.count == 0
-    query.each { |q|
-      RootservAccess.connection.disconnect!
-      return q["flags"].to_s
-    }
+    query = RootservAccess.find_by(name: account.downcase)
+    RootservAccess.connection.disconnect!
+    return query[:flags] if query
     return false
   end
 
   def has_entry account
     RootservAccess.establish_connection(@db)
-    query = RootservAccess.where(name: account.downcase)
-    (RootservAccess.connection.disconnect!; return false) if query.count == 0
-    query.each { |q|
-      RootservAccess.connection.disconnect!
-      return q
-    }
-    return false
+    query = RootservAccess.find_by(name: account.downcase)
+    RootservAccess.connection.disconnect!
+    return query
   end
 
   def has_flag account, flags
@@ -224,26 +217,26 @@ class RootservCommands
       targetobj = @irc.get_nick_object params[0]
       return @irc.notice @client_sid, target, "Could not find user #{params[0]}" if !targetobj
 
-      if params[1].downcase == targetobj["Nick"].downcase
+      if params[1].downcase == targetobj[:nick].downcase
         return @irc.notice @client_sid, target, "Their nick is already #{params[0]}"
       end
 
       remote_user = @irc.get_nick_object params[1]
       if remote_user
-        if remote_user["Nick"] != remote_user["UID"]
+        if remote_user[:nick] != remote_user[:uid]
           @irc.ts6_save @parameters["sid"], remote_user
         else
           us = @irc.get_uid_object(@client_sid)
           if !us
             return sendto_debug "ERROR: Lost our User entry!"
           end
-          @irc.kill us, remote_user["UID"], "Nick collision"
+          @irc.kill us, remote_user[:uid], "Nick collision"
         end
       end
 
       @irc.ts6_fnc @parameters["sid"], params[1], targetobj
-      @irc.notice @client_sid, target, "Changed #{targetobj["Nick"]}'s nick to #{params[1]}"
-      @irc.wallop @client_sid, "\x02#{@irc.get_nick_from_uid target}\x02 used \x02SVSNICK\x02 on \x02#{targetobj["Nick"]}\x02 => \x02#{params[1]}\x02"
+      @irc.notice @client_sid, target, "Changed #{targetobj[:nick]}'s nick to #{params[1]}"
+      @irc.wallop @client_sid, "\x02#{@irc.get_nick_from_uid target}\x02 used \x02SVSNICK\x02 on \x02#{targetobj[:nick]}\x02 => \x02#{params[1]}\x02"
     end
   end
 
@@ -267,12 +260,12 @@ class RootservCommands
 
     newhost = params[1]
 
-    if our_server["Server"] == targetobj["Server"]
+    if our_server[:server] == targetobj[:server]
       return @irc.notice @client_sid, target, "No!"
     end
 
     @parameters["ulines"].each { |x|
-      if targetobj["Server"].downcase == x["name"].downcase
+      if targetobj[:server].downcase == x["name"].downcase
         return @irc.notice @client_sid, target, "No!"
       end
     }
@@ -282,9 +275,9 @@ class RootservCommands
       return
     end
 
-    @irc.chghost @parameters["sid"], targetobj["UID"], newhost
-    @irc.notice @client_sid, target, "Changed #{targetobj["Nick"]}'s host to #{newhost}"
-    @irc.wallop @client_sid, "\x02#{@irc.get_nick_from_uid target}\x02 used \x02SVSHOST\x02 on \x02#{targetobj["Nick"]}\x02 => \x02#{newhost}\x02"
+    @irc.chghost @parameters["sid"], targetobj[:uid], newhost
+    @irc.notice @client_sid, target, "Changed #{targetobj[:nick]}'s host to #{newhost}"
+    @irc.wallop @client_sid, "\x02#{@irc.get_nick_from_uid target}\x02 used \x02SVSHOST\x02 on \x02#{targetobj[:nick]}\x02 => \x02#{newhost}\x02"
   end
 
   def handle_kill hash
@@ -304,12 +297,12 @@ class RootservCommands
     sourceobj = @irc.get_uid_object @client_sid
     return @irc.notice @client_sid, target, "Could not find user #{params[0]}" if !targetobj
 
-    if our_server["Server"] == targetobj["Server"]
+    if our_server[:server] == targetobj[:server]
       return @irc.notice @client_sid, target, "No!"
     end
 
     @parameters["ulines"].each { |x|
-      if targetobj["Server"].downcase == x["name"].downcase
+      if targetobj[:server].downcase == x["name"].downcase
         return @irc.notice @client_sid, target, "No!"
       end
     }
@@ -320,9 +313,9 @@ class RootservCommands
       killmsg = params[1..-1].join(' ')
     end
 
-    @irc.kill sourceobj, targetobj["UID"], killmsg
-    @irc.notice @client_sid, target, "Killed #{targetobj["Nick"]}"
-    @irc.wallop @client_sid, "\x02#{@irc.get_nick_from_uid target}\x02 used \x02KILL\x02 on \x02#{targetobj["Nick"]}\x02"
+    @irc.kill sourceobj, targetobj[:uid], killmsg
+    @irc.notice @client_sid, target, "Killed #{targetobj[:nick]}"
+    @irc.wallop @client_sid, "\x02#{@irc.get_nick_from_uid target}\x02 used \x02KILL\x02 on \x02#{targetobj[:nick]}\x02"
   end
 
   def handle_kick hash
@@ -357,9 +350,9 @@ class RootservCommands
     elsif !userobj
       @irc.notice @client_sid, target, "##{nick} is not on the network"
     else
-      @irc.kick @client_sid, userobj["UID"], channel, kickmsg
+      @irc.kick @client_sid, userobj[:uid], channel, kickmsg
       @irc.notice @client_sid, target, "#{nick} has been kicked from #{channel}"
-      @irc.wallop @client_sid, "\x02#{@irc.get_nick_from_uid target}\x02 used \x02KICK\x02 on \x02#{userobj["Nick"]}\x02 on \x02#{chanobj["Channel"]}\x02"
+      @irc.wallop @client_sid, "\x02#{@irc.get_nick_from_uid target}\x02 used \x02KICK\x02 on \x02#{userobj[:nick]}\x02 on \x02#{chanobj[:channel]}\x02"
     end
   end
 
@@ -386,9 +379,9 @@ class RootservCommands
     if !chanobj
       @irc.notice @client_sid, target, "##{channel} does not exist"
     else
-      @irc.client_set_mode @client_sid, "#{chanobj["Channel"]} #{modes}"
+      @irc.client_set_mode @client_sid, "#{chanobj[:channel]} #{modes}"
       @irc.notice @client_sid, target, "Set mode #{modes} on ##{channel}"
-      @irc.wallop @client_sid, "\x02#{@irc.get_nick_from_uid target}\x02 used \x02MODE\x02 on \x02#{chanobj["Channel"]}\x02 (\x02#{modes}\x02)"
+      @irc.wallop @client_sid, "\x02#{@irc.get_nick_from_uid target}\x02 used \x02MODE\x02 on \x02#{chanobj[:channel]}\x02 (\x02#{modes}\x02)"
     end
   end
 
@@ -412,16 +405,17 @@ class RootservCommands
 
     @irc.notice @client_sid, target, "Information for \x02#{nick}\x02:"
     @irc.notice @client_sid, target, " "
-    @irc.notice @client_sid, target, "UID: #{targetobj["UID"]}"
-    @irc.notice @client_sid, target, "Signed on: #{DateTime.strptime(targetobj["CTime"], '%s').in_time_zone('America/New_York').strftime("%A %B %d %Y @ %l:%M %P %z")} (#{ChronicDuration.output(Time.new.to_i - targetobj["CTime"].to_i)} ago)"
-    @irc.notice @client_sid, target, "SSL: #{targetobj["UModes"].include?('Z') ? "Yes" : "No"}"
-    @irc.notice @client_sid, target, "Real nick!user@host: #{targetobj["Nick"]}!#{targetobj["Ident"]}@#{targetobj["Host"] == "*" ? targetobj["IP"] : targetobj["Host"]}"
-    @irc.notice @client_sid, target, "IP: #{targetobj["IP"]}"
-    @irc.notice @client_sid, target, "Cloaked host: #{targetobj["CHost"]}"
-    @irc.notice @client_sid, target, "Server: #{targetobj["Server"]}"
-    @irc.notice @client_sid, target, "Services account: #{targetobj["NickServ"] == "*" ? "Not logged in." : targetobj["NickServ"]}"
-    @irc.notice @client_sid, target, "User modes: #{targetobj["UModes"]}"
-    @irc.notice @client_sid, target, "Channels: #{@irc.get_user_channels(targetobj["UID"]).join(' ')}"
+    @irc.notice @client_sid, target, "UID: #{targetobj[:uid]}"
+    @irc.notice @client_sid, target, "Signed on: #{DateTime.strptime(targetobj[:ctime], '%s').in_time_zone('America/New_York').strftime("%A %B %d %Y @ %l:%M %P %z")} (#{ChronicDuration.output(Time.new.to_i - targetobj[:ctime].to_i)} ago)"
+    @irc.notice @client_sid, target, "SSL: #{targetobj[:umodes].include?('Z') ? "Yes" : "No"}"
+    @irc.notice @client_sid, target, "CertFP: #{targetobj[:certfp]}" if targetobj[:certfp]
+    @irc.notice @client_sid, target, "Real nick!user@host: #{targetobj[:nick]}!#{targetobj[:ident]}@#{targetobj[:host] == "*" ? targetobj[:ip] : targetobj[:host]}"
+    @irc.notice @client_sid, target, "IP: #{targetobj[:ip]}"
+    @irc.notice @client_sid, target, "Cloaked host: #{targetobj[:chost]}"
+    @irc.notice @client_sid, target, "Server: #{targetobj[:server]}"
+    @irc.notice @client_sid, target, "Services account: #{targetobj[:nickserv] == "*" ? "Not logged in." : targetobj[:nickserv]}"
+    @irc.notice @client_sid, target, "User modes: #{targetobj[:umodes]}"
+    @irc.notice @client_sid, target, "Channels: #{@irc.get_user_channels(targetobj[:uid]).join(' ')}"
     @irc.notice @client_sid, target, " "
     @irc.notice @client_sid, target, "End of whois information"
   end
@@ -440,16 +434,16 @@ class RootservCommands
     chanhash = @irc.get_chan_info chan
     return @irc.notice @client_sid, target, "Could not find channel #{chan}" if !chanhash
     usersarray = @irc.get_users_in_channel chan
-    @irc.notice @client_sid, target, "Information for \x02#{chanhash["Channel"]}\x02:"
-    @irc.notice @client_sid, target, "Created on #{DateTime.strptime(chanhash["CTime"].to_s, '%s').in_time_zone('America/New_York').strftime("%A %B %d %Y @ %l:%M %P %z")} (#{ChronicDuration.output(Time.new.to_i - chanhash["CTime"].to_i)} ago)"
-    @irc.notice @client_sid, target, "Mode: #{chanhash["Modes"]}"
-    @irc.notice @client_sid, target, "Topic: #{chanhash["Topic"]}"
-    @irc.notice @client_sid, target, "Topic set by #{chanhash["Topic_setby"]}" if chanhash["Topic_setby"]
-    @irc.notice @client_sid, target, "Topic set on #{DateTime.strptime(chanhash["Topic_setat"].to_s, '%s').in_time_zone('America/New_York').strftime("%A %B %d %Y @ %l:%M %P %z")} (#{ChronicDuration.output(Time.new.to_i - chanhash["Topic_setat"].to_i)} ago)" if chanhash["Topic_setat"]
+    @irc.notice @client_sid, target, "Information for \x02#{chanhash[:channel]}\x02:"
+    @irc.notice @client_sid, target, "Created on #{DateTime.strptime(chanhash[:ctime].to_s, '%s').in_time_zone('America/New_York').strftime("%A %B %d %Y @ %l:%M %P %z")} (#{ChronicDuration.output(Time.new.to_i - chanhash[:ctime].to_i)} ago)"
+    @irc.notice @client_sid, target, "Mode: #{chanhash[:modes]}"
+    @irc.notice @client_sid, target, "Topic: #{chanhash[:topic]}"
+    @irc.notice @client_sid, target, "Topic set by #{chanhash[:topic_setby]}" if chanhash[:topic_setby]
+    @irc.notice @client_sid, target, "Topic set on #{DateTime.strptime(chanhash[:topic_setat].to_s, '%s').in_time_zone('America/New_York').strftime("%A %B %d %Y @ %l:%M %P %z")} (#{ChronicDuration.output(Time.new.to_i - chanhash[:topic_setat].to_i)} ago)" if chanhash[:topic_setat]
     @irc.notice @client_sid, target, "Users:"
     if !usersarray.empty?
       usersarray.each { |x| @irc.notice @client_sid, target, "- #{x}" }
-      @irc.notice @client_sid, target, "#{usersarray.count} users in #{chanhash["Channel"]}"
+      @irc.notice @client_sid, target, "#{usersarray.count} users in #{chanhash[:channel]}"
     else
       @irc.notice @client_sid, target, "Channel is empty."
     end

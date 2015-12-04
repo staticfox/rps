@@ -28,13 +28,13 @@ class BotQuotes
         (@irc.privmsg @client_sid, target, "You need to be a halfop or higher to add quotes into the database."; return) if !@irc.is_chan_founder(target, hash["from"]) and !@irc.is_chan_admin(target, hash["from"]) and !@irc.is_chan_op(target, hash["from"]) and !@irc.is_chan_halfop(target, hash["from"])
         Quote.establish_connection(@config["connections"]["databases"]["test"])
         quote         = Quote.new
-        quote.Channel = target
-        quote.Person  = @irc.get_nick_from_uid(hash["from"])
-        quote.Quote   = hash["parameters"].split(' ')[1..-1].join(' ')
-        quote.Time    = Time.now.to_i - 18000
+        quote.channel = target
+        quote.person  = @irc.get_nick_from_uid(hash["from"])
+        quote.quote   = hash["parameters"].split(' ')[1..-1].join(' ')
+        quote.time    = Time.now.to_i - 18000
         quote.save
         Quote.connection.disconnect!
-        @irc.privmsg @client_sid, target, "[QUOTE] Saved quote ##{quote.ID}!"
+        @irc.privmsg @client_sid, target, "[QUOTE] Saved quote ##{quote.id}!"
 
       when "del"
         (@irc.privmsg @client_sid, target, "You need to be a founder remove quotes from the database."; return) if !@irc.is_chan_founder(target, hash["from"])
@@ -53,7 +53,7 @@ class BotQuotes
 
       when "search"
         Quote.establish_connection(@config["connections"]["databases"]["test"])
-        query = Quote.where('Channel = ? AND Quote LIKE ?', target, "%#{cp[1]}%")
+        query = Quote.where('channel = ? AND quote LIKE ?', target, "%#{cp[1]}%")
 
         if query.count == 0
           @irc.privmsg @client_sid, target, "No quotes could be found for #{target}."
@@ -63,7 +63,7 @@ class BotQuotes
 
         Thread.new do
           query.each do |row|
-            time = Time.at(row.Time.to_i).strftime("%m/%d/%y @ %-l:%M %p Eastern")
+            time = Time.at(row.time.to_i).strftime("%m/%d/%y @ %-l:%M %p Eastern")
             @irc.privmsg @client_sid, target, "[QUOTE] ##{row.ID}: Submitted By: #{row.Person} - #{time} - #{row.Quote}"
             sleep 0.4
           end
@@ -80,10 +80,10 @@ class BotQuotes
           return
         end
 
-        return if query.Time.nil?
+        return if query.time.nil?
 
-        time = Time.at(query.Time.to_i).strftime("%m/%d/%y @ %-l:%M %p Eastern")
-        @irc.privmsg @client_sid, target, "[QUOTE] ##{query.ID}: Submitted By: #{query.Person} - #{time} - #{query.Quote}"
+        time = Time.at(query.time.to_i).strftime("%m/%d/%y @ %-l:%M %p Eastern")
+        @irc.privmsg @client_sid, target, "[QUOTE] ##{query.id}: Submitted By: #{query.person} - #{time} - #{query.quote}"
         Quote.connection.disconnect!
 
       when /\A\d+\z/
@@ -96,10 +96,10 @@ class BotQuotes
           return
         end
 
-        return if query.Time.nil?
+        return if query.time.nil?
 
-        time = Time.at(query.Time.to_i).strftime("%m/%d/%y @ %-l:%M %p Eastern")
-        @irc.privmsg @client_sid, target, "[QUOTE] ##{query.ID}: Submitted By: #{query.Person} - #{time} - #{query.Quote}"
+        time = Time.at(query.time.to_i).strftime("%m/%d/%y @ %-l:%M %p Eastern")
+        @irc.privmsg @client_sid, target, "[QUOTE] ##{query.id}: Submitted By: #{query.person} - #{time} - #{query.quote}"
         Quote.connection.disconnect!
 
       else

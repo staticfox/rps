@@ -51,22 +51,22 @@ class IRCMsg
     User.establish_connection(@config["connections"]["databases"]["test"])
 
     user = User.new
-    user.Nick   = data[2] ? data[2] : ""
-    user.CTime  = data[4] ? data[4] : ""
-    user.UModes = data[5][1..-1] ? data[5][1..-1] : ""
-    user.Ident  = data[6] ? data[6] : ""
-    user.CHost  = data[7] ? data[7] : ""
-    user.IP     = data[8] ? data[8] : ""
-    user.UID    = data[9] ? data[9] : ""
-    user.Host   = data[10] ? data[10] : ""
+    user.nick   = data[2] ? data[2] : ""
+    user.ctime  = data[4] ? data[4] : ""
+    user.umodes = data[5][1..-1] ? data[5][1..-1] : ""
+    user.ident  = data[6] ? data[6] : ""
+    user.chost  = data[7] ? data[7] : ""
+    user.ip     = data[8] ? data[8] : ""
+    user.uid    = data[9] ? data[9] : ""
+    user.host   = data[10] ? data[10] : ""
     @ircservers.each do |hash|
-      user.Server = hash["server"] if data[0][1..-1] == hash["SID"]
+      user.server = hash["server"] if data[0][1..-1] == hash["SID"]
       server = hash["server"]
     end
 
-    user.Server = "unknown.server" if user.Server.nil?
+    user.server = "unknown.server" if user.server.nil?
     server = "unknown.server" if server.nil?
-    user.NickServ = data[11]
+    user.nickserv = data[11]
     user.save
     User.connection.disconnect!
 
@@ -82,10 +82,10 @@ class IRCMsg
 
     Channel.establish_connection(@config["connections"]["databases"]["test"])
     channel = Channel.new
-    channel.CTime = data[2]
-    thechannel = data[3]
-    channel.Channel = data[3]
-    channel.Modes = data[4]
+    channel.ctime   = data[2]
+    thechannel      = data[3]
+    channel.channel = data[3]
+    channel.modes   = data[4]
     channel.save
     Channel.connection.disconnect!
 
@@ -102,9 +102,9 @@ class IRCMsg
         length = modes.length
         nickname = user[length..-1]
         userinchannel = UserInChannel.new
-        userinchannel.Channel = thechannel
-        userinchannel.User = nickname
-        userinchannel.Modes = modes
+        userinchannel.channel = thechannel
+        userinchannel.user = nickname
+        userinchannel.modes = modes
         userinchannel.save
       end
       UserInChannel.connection.disconnect!
@@ -145,9 +145,9 @@ class IRCMsg
     end
     User.establish_connection(@config["connections"]["databases"]["test"])
     UserInChannel.establish_connection(@config["connections"]["databases"]["test"])
-    user = User.where("Server = ?", sname)
+    user = User.where(server: sname)
     user.each { |q|
-      uc = UserInChannel.where("User = ?", q["UID"])
+      uc = UserInChannel.where(user: q[:uid])
       uc.delete_all
     }
     user.delete_all
@@ -159,11 +159,11 @@ class IRCMsg
     nick = data.split(' ')[2]
 
     User.establish_connection(@config["connections"]["databases"]["test"])
-    user = User.where('UID = ?', nick)
+    user = User.where(uid: nick)
     user.delete_all
 
     UserInChannel.establish_connection(@config["connections"]["databases"]["test"])
-    channel = UserInChannel.where("User = ?", nick)
+    channel = UserInChannel.where(user: nick)
     channel.delete_all
     User.connection.disconnect!
     UserInChannel.connection.disconnect!
@@ -173,10 +173,9 @@ class IRCMsg
 
   def handle_save name, sock, data
     uid = data.split(' ')[2]
-
     User.establish_connection(@config["connections"]["databases"]["test"])
-    nickd = User.sanitize uid
-    User.connection.execute("UPDATE `users` SET `Nick` = #{nickd} WHERE `UID` = #{nickd};")
+    user = User.find_by(uid: uid)
+    user.update(nick: uid)
     User.connection.disconnect!
   end
 
@@ -184,29 +183,23 @@ class IRCMsg
     data = data.split(' ')
     return if data[0] == 'CAPAB'
     return if data[1] == 'ENCAP'
-    channel = data[2]
-    setat = data[3]
-    setby = data[4]
-    topic = data[5..-1].join(' ')[1..-1]
-
     return if data.count < 4
     return if data[4].nil?
-
+    topic = data[5..-1].join(' ')[1..-1]
     Channel.establish_connection(@config["connections"]["databases"]["test"])
-    nickd = Channel.sanitize setby
-    topicd = Channel.sanitize topic
-    Channel.connection.execute("UPDATE `channels` SET `Topic` = #{topicd}, `Topic_setat` = '#{setat}', `Topic_setby` = #{nickd} WHERE `Channel` = '#{channel}'")
+    query = Channel.find_by(channel: data[2])
+    query.update(topic: topic, topic_setat: data[3], topic_setby: data[4])
     Channel.connection.disconnect!
   end
 
   def handle_topic name, sock, data
     data = data.split(' ')
-    uid = data[0][1..-1]
-    channel = data[2]
-    topic = data[3..-1].join(' ')[1..-1]
     User.establish_connection(@config["connections"]["databases"]["test"])
+    Channel.establish_connection(@config["connections"]["databases"]["test"])
 
-    user = User.connection.select_all("SELECT * FROM `users` WHERE `UID` = '#{uid}';")
+    topic = data[3..-1].join(' ')[1..-1]
+
+    user = User.find_by(uid: data[0][1..-1])
     uobj = nil
     user.each { |info|
       User.connection.disconnect!
@@ -228,10 +221,8 @@ class IRCMsg
       setter = "#{uobj["Nick"]}!#{uobj["Ident"]}@#{uhost}"
     end
 
-    Channel.establish_connection(@config["connections"]["databases"]["test"])
-    nickd = Channel.sanitize setter
-    topicd = Channel.sanitize topic
-    Channel.connection.execute("UPDATE `channels` SET `Topic` = #{topicd}, `Topic_setat` = '#{Time.new.to_i}', `Topic_setby` = #{nickd} WHERE `Channel` = '#{channel}'")
+    query = Channel.find_by(channel: data[2])
+    query.update(topic: topic, topic_setat: Time.new.topic, topic_setby: setter)
     Channel.connection.disconnect!
   end
 
@@ -240,11 +231,11 @@ class IRCMsg
     nick = data[0][1..-1]
 
     User.establish_connection(@config["connections"]["databases"]["test"])
-    user = User.where('UID = ?', nick)
+    user = User.where(uid: nick)
     user.delete_all
 
     UserInChannel.establish_connection(@config["connections"]["databases"]["test"])
-    channel = UserInChannel.where("User = ?", nick)
+    channel = UserInChannel.where(user: nick)
     channel.delete_all
     User.connection.disconnect!
     UserInChannel.connection.disconnect!
@@ -256,14 +247,14 @@ class IRCMsg
     data = data.split(' ')
     UserInChannel.establish_connection(@config["connections"]["databases"]["test"])
     if data[2] == '0'
-      userinchannel = UserInChannel.where("User = ?", data[0][1..-1])
+      userinchannel = UserInChannel.where(user: data[0][1..-1])
       userinchannel.delete_all
       @e.Run "IRCChanPart", name, sock, data
     else
       userinchannel = UserInChannel.new
-      userinchannel.Channel = data[3]
-      userinchannel.User = data[0][1..-1]
-      userinchannel.Modes = ""
+      userinchannel.channel = data[3]
+      userinchannel.user    = data[0][1..-1]
+      userinchannel.modes   = ""
       userinchannel.save
       @e.Run "IRCChanJoin", name, sock, data
     end
@@ -273,7 +264,7 @@ class IRCMsg
   def handle_part name, sock, data
     data = data.split(' ')
     UserInChannel.establish_connection(@config["connections"]["databases"]["test"])
-    userinchannel = UserInChannel.where("User = ? AND Channel = ?", data[0][1..-1], data[2])
+    userinchannel = UserInChannel.where(user: data[0][1..-1], channel: data[2])
     userinchannel.delete_all
     @e.Run "IRCChanPart", name, sock, data
     UserInChannel.connection.disconnect!
@@ -282,7 +273,7 @@ class IRCMsg
   def handle_kick name, sock, data
     data = data.split(' ')
     UserInChannel.establish_connection(@config["connections"]["databases"]["test"])
-    userinchannel = UserInChannel.where("User = ? AND Channel = ?", data[3], data[2])
+    userinchannel = UserInChannel.where(user: data[3], channel: data[2])
     userinchannel.delete_all
     UserInChannel.connection.disconnect!
   end
@@ -290,19 +281,16 @@ class IRCMsg
   def handle_nick name, sock, data
     data = data.split(' ')
     User.establish_connection(@config["connections"]["databases"]["test"])
-    nickd = User.sanitize data[2]
-    nickuid = User.sanitize data[0][1..-1]
-    ctime = User.sanitize data[3][1..-1]
-    User.connection.execute("UPDATE `users` SET `Nick` = #{nickd}, `CTime` = #{ctime} WHERE `UID` = #{nickuid};")
+    user = User.find_by(uid: data[0][1..-1])
+    user.update(nick: data[2], ctime: data[3][1..-1])
     User.connection.disconnect!
   end
 
   def handle_chghost name, sock, data
     data = data.split(' ')
     User.establish_connection(@config["connections"]["databases"]["test"])
-    chost = User.sanitize data[3]
-    uid = User.sanitize data[2]
-    User.connection.execute("UPDATE `users` SET `CHost` = #{chost} WHERE `UID` = #{uid};")
+    user = User.find_by(uid: data[2])
+    user.update(chost: data[3])
     User.connection.disconnect!
   end
 
@@ -310,20 +298,21 @@ class IRCMsg
     data = data.split(' ')
     User.establish_connection(@config["connections"]["databases"]["test"])
     if data.count == 5
-      euid = User.sanitize data[4][1..-1]
-      acct = User.sanitize '*'
+      uid  = data[4][1..-1]
+      acct = '*'
     else
-      euid = User.sanitize data[4]
-      acct = User.sanitize data[5][1..-1]
+      uid  = data[4]
+      acct = data[5][1..-1]
     end
-    User.connection.execute("UPDATE `users` SET `NickServ` = #{acct} WHERE `UID` = #{euid};")
+    user = User.find_by(uid: uid)
+    user.update(nickserv: acct)
     User.connection.disconnect!
   end
 
   def handle_certfp name, sock, data
     data = data.split(' ')
     User.establish_connection(@config["connections"]["databases"]["test"])
-    user = User.find_by(UID: data[0][1..-1])
+    user = User.find_by(uid: data[0][1..-1])
     user.update(certfp: data[4][1..-1])
     User.connection.disconnect!
   end
@@ -331,25 +320,56 @@ class IRCMsg
   def handle_tmode name, sock, data
     data = data.split(' ')
 
-    Channel.establish_connection(@config["connections"]["databases"]["test"])
-    cchan = Channel.sanitize data[3]
-
-
     UserInChannel.establish_connection(@config["connections"]["databases"]["test"])
-    nchan = UserInChannel.sanitize data[3]
-    nmode = UserInChannel.sanitize data[4][1..-1]
-    nuser = UserInChannel.sanitize data[5]
+    i = 5
+    # Are we starting off with and addition or subtraction?
+    addnow = data[4][0] == '+'
 
-    UserInChannel.connection.execute("UPDATE `user_in_channels` SET `Modes` = CONCAT(`Modes`,#{nmode}) WHERE `User` = #{nuser} AND `Channel` = #{nchan};") if data[4].include?("+")
-
-    if data[4].include?("-")
-      modes = data[4][1..-1].split('')
-      modes.each do |mode|
-        user = UserInChannel.sanitize data[5]
-        chan = UserInChannel.sanitize data[3]
-        UserInChannel.connection.execute("UPDATE `user_in_channels` SET `Modes` = REPLACE(`Modes`,'#{mode}', '') WHERE `User` = #{user} AND `Channel` = #{chan};")
+    # Go through each change
+    data[4].split(//).each { |m|
+      case m
+      when '+'
+        addnow = true
+        next
+      when '-'
+        addnow = false
+        next
+      when 'f','j','k','l'
+        i+=1 if addnow
+        next
+      when 'b','x','e','I'
+        i+=1
+        next
       end
-    end
+
+      # Channel operator status changes
+      if ['q','a','o','h','v'].include? m
+        if addnow
+          queryadd = UserInChannel.find_by(user: data[i], channel: data[3])
+          if queryadd
+            curmodes = queryadd[:modes] ? queryadd[:modes] : ''
+            queryadd.update(modes: ('' + m).split(//).uniq.join)
+          else
+            queryadd = UserInChannel.new
+            queryadd.channel = data[3]
+            queryadd.user    = data[i]
+            queryadd.modes   = m
+            queryadd.save
+          end
+          i+=1
+          next
+        end
+
+        if !addnow
+          queryminus = UserInChannel.where(user: data[i], channel: data[3]).first
+          curmodes = queryminus[:modes] ? queryminus[:modes] : ''
+          newmode = curmodes.to_s.tr(m, '')
+          queryminus.update(modes: newmode)
+          i+=1
+          next
+        end
+      end
+    }
     UserInChannel.connection.disconnect!
   end
 
@@ -359,14 +379,20 @@ class IRCMsg
     data = data.split(' ')
 
     User.establish_connection(@config["connections"]["databases"]["test"])
-    nmode = User.sanitize modes[1..-1]
     uid = User.sanitize data[2]
-    User.connection.execute("UPDATE `users` SET `UModes` = CONCAT(`UModes`,#{nmode}) WHERE `UID` = #{uid};") if modes.include?("+")
+
+    if modes.include? "+"
+      modes = modes[1..-1]
+      query = User.find_by(uid: data[2])
+      query.update(umodes: (query.umodes + modes).split(//).uniq.sort.join)
+    end
 
     if modes.include?("-")
       modes = modes[1..-1].split('')
       modes.each do |mode|
-        User.connection.execute("UPDATE `users` SET `UModes` = REPLACE(`UModes`,'#{mode}', '') WHERE `UID` = #{uid};")
+        query = User.where(uid: data[2]).first
+        newmode = query[:umodes].to_s.tr(mode, '')
+        query.update(umodes: newmode)
       end
     end
     User.connection.disconnect!
@@ -386,9 +412,9 @@ class IRCMsg
     Channel.establish_connection(@config["connections"]["databases"]["test"])
     UserInChannel.establish_connection(@config["connections"]["databases"]["test"])
 
-    User.connection.execute("TRUNCATE `users`;")
-    Channel.connection.execute("TRUNCATE `channels`;")
-    UserInChannel.connection.execute("TRUNCATE `user_in_channels`;")
+    User.destroy_all
+    Channel.destroy_all
+    UserInChannel.destroy_all
 
     User.connection.disconnect!
     Channel.connection.disconnect!

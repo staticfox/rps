@@ -17,19 +17,19 @@ class LimitServCore
   end
 
   def signup_channel channel
-    LimitServ_Channel.establish_connection(@config["connections"]["databases"]["test"])
+    LimitServ_Channel.establish_connection(@db)
     query = LimitServ_Channel.new
-    query.Channel = channel.downcase
-    query.People = @irc.people_in_channel channel
-    query.Time = Time.now.to_i
+    query.channel = channel.downcase
+    query.people  = @irc.people_in_channel channel
+    query.time    = Time.now.to_i
     query.save
     @assigned_channels << channel.downcase
     LimitServ_Channel.connection.disconnect!
   end
 
   def remove_channel channel
-    LimitServ_Channel.establish_connection(@config["connections"]["databases"]["test"])
-    query = LimitServ_Channel.where('Channel = ?', channel.downcase)
+    LimitServ_Channel.establish_connection(@db)
+    query = LimitServ_Channel.where(channel: channel.downcase)
     return false if query.count == 0
     @assigned_channels.delete(channel.downcase)
     query.delete_all
@@ -45,14 +45,14 @@ class LimitServCore
   end
 
   def join_channels
-    LimitServ_Channel.establish_connection(@config["connections"]["databases"]["test"])
-    queries = LimitServ_Channel.select(:Channel)
+    LimitServ_Channel.establish_connection(@db)
+    queries = LimitServ_Channel.select(:channel)
     return if queries.count == 0
     queries.each { |query|
-      @irc.client_join_channel @client_sid, query.Channel
-      @irc.client_set_mode @client_sid, "#{query.Channel} +o #{@client_sid}"
-      sendto_debug "JOINED: #{query.Channel}"
-      @assigned_channels << query.Channel
+      @irc.client_join_channel @client_sid, query.channel
+      @irc.client_set_mode @client_sid, "#{query.channel} +o #{@client_sid}"
+      sendto_debug "JOINED: #{query.channel}"
+      @assigned_channels << query.channel
     }
     LimitServ_Channel.connection.disconnect!
   end
@@ -73,22 +73,22 @@ class LimitServCore
   end
 
   def stats_channels
-    LimitServ_Channel.establish_connection(@config["connections"]["databases"]["test"])
-    queries = LimitServ_Channel.where('Time <= ?', Time.now.to_i)
+    LimitServ_Channel.establish_connection(@db)
+    queries = LimitServ_Channel.where('time <= ?', Time.now.to_i)
     return if queries.count == 0
     array = []
     queries.each { |query|
-      oldlimit = query.People.to_i
-      newlimit = @irc.people_in_channel query.Channel
+      oldlimit = query.people.to_i
+      newlimit = @irc.people_in_channel query.channel
       newlimit = newlimit.to_i
       channellimit = newlimit
       newlimit = limits newlimit
-      #puts "0 - #{query.Channel} - #{oldlimit} - #{newlimit}"
+      #puts "0 - #{query.channel} - #{oldlimit} - #{newlimit}"
       calc = newlimit - oldlimit
       ofr = "FALSE"
       ofr = "TRUE" if calc <= -2 or calc >= 2
       #puts "Offset: #{calc}"
-      string = "#{query.Channel} - Current Amount: #{channellimit} - Current Limit: #{newlimit} - Offset: #{calc} - Offset Reached: #{ofr}"
+      string = "#{query.channel} - Current Amount: #{channellimit} - Current Limit: #{newlimit} - Offset: #{calc} - Offset Reached: #{ofr}"
       array.push(string)
     }
     LimitServ_Channel.connection.disconnect!
@@ -101,43 +101,44 @@ class LimitServCore
     else
       setval = 0
     end
-    LimitServ_Channel.establish_connection(@config["connections"]["databases"]["test"])
-    LimitServ_Channel.connection.execute("UPDATE `limit_serv_channels` SET `People` = '#{setval}', `Time` = '#{Time.now.to_i}' WHERE `Channel` = '#{data[3].downcase}';")
+    LimitServ_Channel.establish_connection(@db)
+    begin
+      query = LimitServ_Channel.find_by(channel: data[3].downcase)
+      query.update(people: setval.to_i, time: Time.new.to_i) if query
+    rescue Exception => e
+      LimitServ_Channel.connection.disconnect!
+      puts e.message
+      sendto_debug "********* EXCEPTION *********"
+      sendto_debug e.message
+      sendto_debug e.backtrace
+      sendto_debug "********* END OF EXCEPTION *********"
+    end
     LimitServ_Channel.connection.disconnect!
   end
 
   def run_checks
-    LimitServ_Channel.establish_connection(@config["connections"]["databases"]["test"])
-    queries = LimitServ_Channel.where('Time <= ?', Time.now.to_i)
+    LimitServ_Channel.establish_connection(@db)
+    queries = LimitServ_Channel.where('time <= ?', Time.now.to_i)
     return if queries.count == 0
     queries.each { |query|
-      oldlimit = query.People.to_i
-      newlimit = @irc.people_in_channel query.Channel
+      oldlimit = query.people.to_i
+      newlimit = @irc.people_in_channel query.channel
       newlimit = newlimit.to_i
 
       newlimit = limits newlimit
-      #puts "0 - #{query.Channel} - #{oldlimit} - #{newlimit}"
       calc = newlimit - oldlimit
-      #puts "Offset: #{calc}"
 
       if calc <= -2 or calc >= 2
 
-        #puts "Channel List Before Checking - #{@channellist}"
-
-        @channellist.each { |channel| return if channel == query.Channel }
-
-        @channellist.push(query.Channel)
-
-        #puts "Added channel to array. - #{@channellist}"
+        @channellist.each { |channel| return if channel == query.channel }
+        @channellist.push(query.channel)
 
         Thread.new do
-          #puts "1 - Spawnned thread for checking #{query.Channel} - Waiting 60 seconds..."
           sleep 60
+          @channellist.delete(query.channel)
 
-          @channellist.delete(query.Channel)
-
-          oldlimit = query.People.to_i
-          newlimit = @irc.people_in_channel query.Channel
+          oldlimit = query.people.to_i
+          newlimit = @irc.people_in_channel query.channel
           newlimit = newlimit.to_i
 
           currentcount = newlimit
@@ -147,9 +148,18 @@ class LimitServCore
 
           next if oldlimit == newlimit
 
-          LimitServ_Channel.connection.execute("UPDATE `limit_serv_channels` SET `People` = '#{newlimit}', `Time` = '#{Time.now.to_i}' WHERE `Channel` = '#{query.Channel}';")
-          @irc.client_set_mode @client_sid, "#{query.Channel} +l #{newlimit}"
-          sendto_debug "NEW LIMIT: #{query.Channel} - #{newlimit}, Old Limit - #{oldlimit}, Offset: #{calc}, Actual Count: #{currentcount}"
+          begin
+            query.update(people: newlimit, time: Time.new.to_i)
+          rescue Exception => e
+            puts e.message
+            sendto_debug "********* EXCEPTION *********"
+            sendto_debug e.message
+            sendto_debug e.backtrace
+            sendto_debug "********* END OF EXCEPTION *********"
+          end
+
+          @irc.client_set_mode @client_sid, "#{query.channel} +l #{newlimit}"
+          sendto_debug "NEW LIMIT: #{query.channel} - #{newlimit}, Old Limit - #{oldlimit}, Offset: #{calc}, Actual Count: #{currentcount}"
         end
       end
     }
@@ -157,13 +167,7 @@ class LimitServCore
   end
 
   def _internal_nuke
-    LimitServ_Channel.establish_connection(@config["connections"]["databases"]["test"])
-    queries = LimitServ_Channel.all
-    return if queries.count == 0
-    queries.each { |query|
-      LimitServ_Channel.connection.execute("UPDATE `limit_serv_channels` SET `People` = '#{query.People}', `Time` = '#{Time.now.to_i}' WHERE `Channel` = '#{query.Channel}';")
-      @irc.client_set_mode @client_sid, "#{query.Channel} -l"
-    }
+    @assigned_channels.each { |x| @irc.client_set_mode @client_sid, "#{x} -l" }
   end
 
   def handle_privmsg hash
@@ -196,12 +200,12 @@ class LimitServCore
 
     when "nuke"
       return @irc.notice @client_sid, target, "[ERROR] You must be an oper to use this command." if !@irc.is_oper_uid target
-      LimitServ_Channel.establish_connection(@config["connections"]["databases"]["test"])
+      LimitServ_Channel.establish_connection(@db)
       queries = LimitServ_Channel.all
       return if queries.count == 0
       queries.each { |query|
-        LimitServ_Channel.connection.execute("UPDATE `limit_serv_channels` SET `People` = '#{query.People}', `Time` = '#{Time.now.to_i}' WHERE `Channel` = '#{query.Channel}';")
-        @irc.client_set_mode @client_sid, "#{query.Channel} -l"
+        query.update(time: Time.now.to_i)
+        @irc.client_set_mode @client_sid, "#{query.channel} -l"
       }
       sendto_debug "#{@irc.get_nick_from_uid target} unset the limit in all channels"
       @irc.wallop @client_sid, "\x02#{@irc.get_nick_from_uid target}\x02 used \x02NUKE\x02 unsetting the limit in all channels"
@@ -247,18 +251,19 @@ class LimitServCore
     @client_sid = "#{@parameters["sid"]}000002"
     LimitServ_Channel.establish_connection(@config["connections"]["databases"]["test"])
     LimitServ_Channel.connection.disconnect!
+    @db = @config["connections"]["databases"]["test"]
     @channellist = []
 
     @e.on_event do |type, name, sock|
       if type == "LimitServ-Init"
-        @irc = IRCLib.new name, sock, @config["connections"]["databases"]["test"]
+        @irc = IRCLib.new name, sock, @db
         join_channels
       end
     end
 
     @e.on_event do |type, hash|
       if type == "LimitServ-Chat"
-        @irc = IRCLib.new hash["name"], hash["sock"], @config["connections"]["databases"]["test"] if @irc.nil?
+        @irc = IRCLib.new hash["name"], hash["sock"], @db if @irc.nil?
         if hash["target"] == @client_sid
           handle_privmsg hash if hash["msgtype"] == "PRIVMSG" or hash["msgtype"] == "NOTICE"
         end
@@ -268,7 +273,7 @@ class LimitServCore
     @e.on_event do |type, name, sock, data|
       if type == "IRCChanJoin" or type == "IRCChanPart" or type == "IRCPing" or type == "IRCClientQuit"
         config = @c.Get if @irc.nil?
-        @irc = IRCLib.new name, sock, @config["connections"]["databases"]["test"] if @irc.nil?
+        @irc = IRCLib.new name, sock, @db if @irc.nil?
         run_checks
       elsif type == "IRCChanSJoin"
         burst_data data

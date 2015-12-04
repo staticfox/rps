@@ -11,47 +11,35 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2015120320151832) do
+ActiveRecord::Schema.define(version: 2015120320152350) do
 
-  create_table "CommandServ_Commands", primary_key: "Number", force: :cascade do |t|
-    t.datetime "Date",                   null: false
-    t.text     "Channel",  limit: 65535, null: false
-    t.text     "Command",  limit: 65535, null: false
-    t.string   "Response", limit: 255,   null: false
+  create_table "bot_channels", force: :cascade do |t|
+    t.string  "channel", limit: 50, null: false
+    t.integer "options", limit: 4
   end
 
-  create_table "DNSServ_Exempt", primary_key: "Number", force: :cascade do |t|
-    t.string "Server", limit: 40, null: false
+  create_table "channels", force: :cascade do |t|
+    t.integer "ctime",       limit: 8,     null: false
+    t.string  "channel",     limit: 50,    null: false
+    t.string  "modes",       limit: 25
+    t.text    "topic",       limit: 65535
+    t.string  "topic_setat", limit: 255
+    t.string  "topic_setby", limit: 255
   end
 
-  create_table "bot_channels", primary_key: "ID", force: :cascade do |t|
-    t.string  "Channel", limit: 50, null: false
-    t.integer "Options", limit: 4
+  create_table "limit_serv_channels", force: :cascade do |t|
+    t.string  "channel", limit: 25, null: false
+    t.integer "people",  limit: 4,  null: false
+    t.integer "time",    limit: 8,  null: false
   end
 
-  create_table "channels", primary_key: "Number", force: :cascade do |t|
-    t.integer "CTime",       limit: 8,     null: false
-    t.string  "Channel",     limit: 50,    null: false
-    t.string  "Modes",       limit: 25
-    t.text    "Topic",       limit: 65535
-    t.string  "Topic_setat", limit: 255
-    t.string  "Topic_setby", limit: 255
-  end
+  add_index "limit_serv_channels", ["id"], name: "Number", unique: true, using: :btree
 
-  create_table "limit_serv_channels", id: false, force: :cascade do |t|
-    t.integer "Number",  limit: 4,  null: false
-    t.string  "Channel", limit: 25, null: false
-    t.integer "People",  limit: 4,  null: false
-    t.integer "Time",    limit: 8,  null: false
-  end
-
-  add_index "limit_serv_channels", ["Number"], name: "Number", unique: true, using: :btree
-
-  create_table "quotes", primary_key: "ID", force: :cascade do |t|
-    t.integer "Time",    limit: 4,   null: false
-    t.string  "Channel", limit: 50,  null: false
-    t.string  "Person",  limit: 50,  null: false
-    t.string  "Quote",   limit: 255, null: false
+  create_table "quotes", force: :cascade do |t|
+    t.integer "time",    limit: 4,   null: false
+    t.string  "channel", limit: 50,  null: false
+    t.string  "person",  limit: 50,  null: false
+    t.string  "quote",   limit: 255, null: false
   end
 
   create_table "rootserv_accesses", force: :cascade do |t|
@@ -62,23 +50,23 @@ ActiveRecord::Schema.define(version: 2015120320151832) do
     t.integer "modified", limit: 4
   end
 
-  create_table "user_in_channels", primary_key: "Number", force: :cascade do |t|
-    t.string "Channel", limit: 50, null: false
-    t.string "User",    limit: 25, null: false
-    t.string "Modes",   limit: 25, null: false
+  create_table "user_in_channels", force: :cascade do |t|
+    t.string "channel", limit: 50, null: false
+    t.string "user",    limit: 25, null: false
+    t.string "modes",   limit: 25, null: false
   end
 
-  create_table "users", primary_key: "Number", force: :cascade do |t|
-    t.text   "Nick",     limit: 65535, null: false
-    t.string "CTime",    limit: 15,    null: false
-    t.string "UModes",   limit: 25,    null: false
-    t.string "Ident",    limit: 15,    null: false
-    t.string "CHost",    limit: 75,    null: false
-    t.string "IP",       limit: 50,    null: false
-    t.string "UID",      limit: 10,    null: false
-    t.string "Host",     limit: 100,   null: false
-    t.text   "Server",   limit: 65535, null: false
-    t.string "NickServ", limit: 25,    null: false
+  create_table "users", force: :cascade do |t|
+    t.text   "nick",     limit: 65535, null: false
+    t.string "ctime",    limit: 15,    null: false
+    t.string "umodes",   limit: 25,    null: false
+    t.string "ident",    limit: 15,    null: false
+    t.string "chost",    limit: 75,    null: false
+    t.string "ip",       limit: 50,    null: false
+    t.string "uid",      limit: 10,    null: false
+    t.string "host",     limit: 100,   null: false
+    t.text   "server",   limit: 65535, null: false
+    t.string "nickserv", limit: 25,    null: false
     t.string "certfp",   limit: 255
   end
 

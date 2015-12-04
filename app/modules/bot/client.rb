@@ -47,7 +47,7 @@ class BotClient
   def signup_channel channel
     BotChannel.establish_connection(@db)
     query = BotChannel.new
-    query.Channel = channel.downcase
+    query.channel = channel.downcase
     query.save
     BotChannel.connection.disconnect!
     @assigned_channels << channel.downcase
@@ -55,23 +55,22 @@ class BotClient
 
   def remove_channel channel
     BotChannel.establish_connection(@db)
-    query = BotChannel.where('Channel = ?', channel.downcase)
-    (BotChannel.connection.disconnect!; return false) if query.count == 0
+    query = BotChannel.where(channel: channel.downcase)
     query.delete_all
     BotChannel.connection.disconnect!
     @assigned_channels.delete(channel.downcase)
-    return true
+    return
   end
 
   def join_channels
     BotChannel.establish_connection(@db)
-    queries = BotChannel.select(:Channel)
+    queries = BotChannel.select(:channel)
     return if queries.count == 0
     queries.each do |query|
-      @irc.client_join_channel @client_sid, query.Channel
-      @irc.client_set_mode @client_sid, "#{query.Channel} +o #{@client_sid}"
-      sendto_debug "JOINED: #{query.Channel}"
-      @assigned_channels << query.Channel
+      @irc.client_join_channel @client_sid, query.channel
+      @irc.client_set_mode @client_sid, "#{query.channel} +o #{@client_sid}"
+      sendto_debug "JOINED: #{query.channel}"
+      @assigned_channels << query.channel
     end
     BotChannel.connection.disconnect!
   end

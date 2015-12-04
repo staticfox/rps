@@ -23,16 +23,16 @@ class IRCLib
     User.establish_connection(@db)
 
     db_add          = User.new
-    db_add.Nick     = nick
-    db_add.CTime    = Time.now.to_i
-    db_add.UModes   = modes
-    db_add.Ident    = user
-    db_add.CHost    = host
-    db_add.IP       = 0
-    db_add.UID      = sid
-    db_add.Host     = '*'
-    db_add.Server   = server
-    db_add.NickServ = '*'
+    db_add.nick     = nick
+    db_add.ctime    = Time.now.to_i
+    db_add.umodes   = modes.tr('+', '')
+    db_add.ident    = user
+    db_add.chost    = host
+    db_add.ip       = 0
+    db_add.uid      = sid
+    db_add.host     = '*'
+    db_add.server   = server
+    db_add.nickserv = '*'
     db_add.save
     User.connection.disconnect!
 
@@ -52,13 +52,13 @@ class IRCLib
 
   def collide nick, server
     User.establish_connection(@db)
-    user = User.connection.select_all("SELECT * FROM `users` WHERE `Nick` = '#{nick}';")
+    user = User.where(nick: nick)
 
     @bots.each { |bot|
       user.each { |info|
-        if bot["nick"].downcase == info["Nick"].downcase
-          if bot["server"].downcase != info["Server"].downcase
-            server_kill bot["server_sid"], info["UID"], bot["server"], "Nick collision with services (new)"
+        if bot["nick"].downcase == info[:nick].downcase
+          if bot["server"].downcase != info[:server].downcase
+            server_kill bot["server_sid"], info[:uid], bot["server"], "Nick collision with services (new)"
             nick bot["sid"], bot["nick"]
           end
         end
@@ -87,9 +87,9 @@ class IRCLib
     end
     send_data @name, @sock, ":#{sid} JOIN #{ts} #{room} +\r\n"
     userinchannel = UserInChannel.new
-    userinchannel.Channel = room
-    userinchannel.User = sid
-    userinchannel.Modes = "o"
+    userinchannel.channel = room
+    userinchannel.user = sid
+    userinchannel.modes = "o"
     userinchannel.save
     UserInChannel.connection.disconnect!
   end
@@ -97,7 +97,7 @@ class IRCLib
   def client_part_channel sid, room, reason = ""
     send_data @name, @sock, ":#{sid} PART #{room} :#{reason}\r\n"
     UserInChannel.establish_connection(@db)
-    userinchannel = UserInChannel.where("User = ? AND Channel = ?", sid, room)
+    userinchannel = UserInChannel.where(user: sid, channel: room)
     userinchannel.delete_all
     UserInChannel.connection.disconnect!
   end
@@ -147,19 +147,18 @@ class IRCLib
   def chghost serversid, uid, host
     send_data @name, @sock, ":#{serversid} CHGHOST #{uid} #{host}\r\n"
     User.establish_connection(@db)
-    uidd = User.sanitize uid
-    hostd = User.sanitize host
-    User.connection.execute("UPDATE `users` SET `CHost` = #{hostd} WHERE `UID` = #{uidd};")
+    query = User.find_by(uid: uid)
+    query.update(chost: host)
     User.connection.disconnect!
   end
 
   def ts6_fnc sid, newnick, uobj
-    send_data @name, @sock, ":#{sid} ENCAP #{uobj["Server"]} RSFNC #{uobj["UID"]} #{newnick} #{Time.now.to_i} #{uobj["CTime"]}\r\n"
+    send_data @name, @sock, ":#{sid} ENCAP #{uobj[:server]} RSFNC #{uobj[:uid]} #{newnick} #{Time.now.to_i} #{uobj[:ctime]}\r\n"
   end
 
   def ts6_save sid, uobj
-    send_data @name, @sock, ":#{sid} SAVE #{uobj["UID"]} #{uobj["CTime"]}\r\n"
-    change_nick uobj["UID"], uobj["UID"]
+    send_data @name, @sock, ":#{sid} SAVE #{uobj[:uid]} #{uobj[:ctime]}\r\n"
+    change_nick uobj[:uid], uobj[:uid]
   end
 
   def server_kill sid, uid, server_name, reason
@@ -168,7 +167,7 @@ class IRCLib
   end
 
   def kill sobj, uid, message
-    send_data @name, @sock, ":#{sobj["UID"]} KILL #{uid} :#{sobj["Host"]}!#{sobj["Nick"]} (#{message})\r\n"
+    send_data @name, @sock, ":#{sobj[:uid]} KILL #{uid} :#{sobj[:host]}!#{sobj[:nick]} (#{message})\r\n"
     delete_user uid
   end
 
@@ -184,19 +183,19 @@ class IRCLib
 
   def remove_user_from_channel uid, channel
     UserInChannel.establish_connection(@db)
-    userinchannel = UserInChannel.where("User = ? AND Channel = ?", uid, channel)
+    userinchannel = UserInChannel.where(user: uid, channel: channel)
     userinchannel.delete_all
     UserInChannel.connection.disconnect!
   end
 
   def get_user_channels uid
     UserInChannel.establish_connection(@db)
-    data = UserInChannel.where("User = ?", uid)
+    data = UserInChannel.where(user: uid)
     chans = []
     data.each { |i|
       pfx = ""
-      if !i["Modes"].empty?
-        i["Modes"].split(//).each { |x|
+      if !i[:modes].empty?
+        i[:modes].split(//).each { |x|
           case x
           when "v"
             pfx += "+" if pfx.empty?
@@ -211,10 +210,10 @@ class IRCLib
           end
         }
       end
-      if get_chan_info(i["Channel"])["Modes"].include? 's'
+      if get_chan_info(i[:channel])[:modes].include? 's'
         pfx = '*'+pfx
       end
-      chans << pfx+i["Channel"].to_s
+      chans << pfx+i[:channel].to_s
     }
     UserInChannel.connection.disconnect!
     return chans
@@ -222,11 +221,11 @@ class IRCLib
 
   def delete_user uid
     User.establish_connection(@db)
-    user = User.where('UID = ?', uid)
+    user = User.where(uid: uid)
     user.delete_all
 
     UserInChannel.establish_connection(@db)
-    channel = UserInChannel.where("User = ?", uid)
+    channel = UserInChannel.where(user: uid)
     channel.delete_all
     User.connection.disconnect!
     UserInChannel.connection.disconnect!
@@ -234,67 +233,51 @@ class IRCLib
 
   def change_nick nick, uid
     User.establish_connection(@db)
-    nickd = User.sanitize nick
-    nickuid = User.sanitize uid
-    User.connection.execute("UPDATE `users` SET `Nick` = #{nickd}, `CTime` = '#{Time.new.to_i}' WHERE `UID` = #{nickuid};")
+    query = User.find_by(uid: uid)
+    query.update(nick: nick, ctime: Time.new.to_i)
     User.connection.disconnect!
   end
 
   def get_uid_object uid
     User.establish_connection(@db)
-    user = User.connection.select_all("SELECT * FROM `users` WHERE `UID` = '#{uid}';")
-
-    user.each { |info|
-      User.connection.disconnect!
-      return info
-    }
-
-    return false
+    user = User.where(uid: uid).first
+    User.connection.disconnect!
+    return user
   end
 
   def get_nick_object nick
     User.establish_connection(@db)
-    user = User.connection.select_all("SELECT * FROM `users` WHERE `Nick` = '#{nick}';")
-
-    user.each { |info|
-      User.connection.disconnect!
-      return info
-    }
-
-    return false
+    user = User.where(nick: nick).first
+    User.connection.disconnect!
+    return user
   end
 
   def get_channel_membership channel, uid
     UserInChannel.establish_connection(@db)
-    userinchannel = UserInChannel.connection.select_all("SELECT `Modes` FROM `user_in_channels` WHERE `Channel` = '#{channel}' AND `User` = '#{uid}';")
-
-    userinchannel.each { |info|
-      UserInChannel.connection.disconnect!
-      return info
-    }
-
-    return false
+    userinchannel = UserInChannel.select(:modes).where(channel: channel, user: uid).first
+    UserInChannel.connection.disconnect!
+    return userinchannel
   end
 
   def get_nick_from_uid uid
     uid_object = get_uid_object uid
     return false if !uid_object
 
-    return uid_object["Nick"]
+    return uid_object[:nick]
   end
 
   def get_uid_from_nick nick
     nick_object = get_nick_object nick
     return false if !nick_object
 
-    return nick_object["UID"]
+    return nick_object[:uid]
   end
 
   def is_oper_uid uid
     uid_object = get_uid_object uid
     return false if !uid_object
 
-    return true if uid_object["UModes"].include?("o")
+    return true if uid_object[:umodes].include?("o")
     return false
   end
 
@@ -302,7 +285,7 @@ class IRCLib
     nick_object = get_nick_object nick
     return false if !nick_object
 
-    return true if nick_object["UModes"].include?("o")
+    return true if nick_object[:umodes].include?("o")
     return false
   end
 
@@ -310,7 +293,7 @@ class IRCLib
     chan_access = get_channel_membership channel, uid
     return false if !chan_access
 
-    return true if chan_access["Modes"].include?("q")
+    return true if chan_access[:modes].include?("q")
     return false
   end
 
@@ -318,7 +301,7 @@ class IRCLib
     chan_access = get_channel_membership channel, uid
     return false if !chan_access
 
-    return true if chan_access["Modes"].include?("a")
+    return true if chan_access[:modes].include?("a")
     return false
   end
 
@@ -326,7 +309,7 @@ class IRCLib
     chan_access = get_channel_membership channel, uid
     return false if !chan_access
 
-    return true if chan_access["Modes"].include?("o")
+    return true if chan_access[:modes].include?("o")
     return false
   end
 
@@ -334,7 +317,7 @@ class IRCLib
     chan_access = get_channel_membership channel, uid
     return false if !chan_access
 
-    return true if chan_access["Modes"].include?("h")
+    return true if chan_access[:modes].include?("h")
     return false
   end
 
@@ -342,7 +325,7 @@ class IRCLib
     chan_access = get_channel_membership channel, uid
     return false if !chan_access
 
-    return true if chan_access["Modes"].include?("v")
+    return true if chan_access[:modes].include?("v")
     return false
   end
 
@@ -350,7 +333,7 @@ class IRCLib
     uid_object = get_uid_object uid
     return false if !uid_object
 
-    return true if uid_object["UModes"].include?("Z")
+    return true if uid_object[:umodes].include?("Z")
     return false
   end
 
@@ -358,13 +341,13 @@ class IRCLib
     uid_object = get_uid_object uid
     return false if !uid_object
 
-    return false if uid_object["NickServ"] == '*'
-    return uid_object["NickServ"]
+    return false if uid_object[:nickserv] == '*'
+    return uid_object[:nickserv]
   end
 
   def get_chan_info channel
     Channel.establish_connection(@db)
-    channel = Channel.where('Channel = ?', channel.downcase)
+    channel = Channel.where(channel: channel.downcase)
     if channel.count == 0
       Channel.connection.disconnect!
       return false
@@ -379,11 +362,11 @@ class IRCLib
   def get_users_in_channel channel
     users = []
     UserInChannel.establish_connection(@db)
-    uic = UserInChannel.where('Channel = ?', channel.downcase)
+    uic = UserInChannel.where(channel: channel.downcase)
     uic.each { |query|
       pfx = ""
-      if !query["Modes"].empty?
-        query["Modes"].split(//).each { |x|
+      if !query[:modes].empty?
+        query[:modes].split(//).each { |x|
           case x
           when "v"
             pfx += "+" if pfx.empty?
@@ -398,10 +381,10 @@ class IRCLib
           end
         }
       end
-      uobj = get_uid_object query["User"]
+      uobj = get_uid_object query[:user]
       next if !uobj
-      ip = uobj["IP"] != '0' ? uobj["IP"] : uobj["CHost"]
-      users << "#{pfx}#{uobj["Nick"]} [#{uobj["Ident"]}@#{ip}]"
+      ip = uobj[:ip] != '0' ? uobj[:ip] : uobj[:chost]
+      users << "#{pfx}#{uobj[:nick]} [#{uobj[:ident]}@#{ip}]"
     }
 
     # FIXME
@@ -418,32 +401,30 @@ class IRCLib
 
   def people_in_channel channel
     UserInChannel.establish_connection(@db)
-    userinchannel = UserInChannel.connection.select_all("SELECT COUNT(*) AS `Total` FROM `user_in_channels` WHERE `Channel` = '#{channel.downcase}';")
-    userinchannel.each { |query|
-      UserInChannel.connection.disconnect!
-      return query["Total"]
-    }
+    query = UserInChannel.where(channel: channel.downcase).count
+    UserInChannel.connection.disconnect!
+    return query
   end
 
   def get_channels
     channellist = []
     Channel.establish_connection(@db)
-    channels = Channel.select(:Channel).distinct
-    channels.each { |channel| channellist.push(channel.Channel) }
+    channels = Channel.select(:channel).distinct
+    channels.each { |channel| channellist.push(channel.channel) }
     Channel.connection.disconnect!
     return channellist
   end
 
   def get_channel_total
     Channel.establish_connection(@db)
-    channels = Channel.select(:Channel).count
+    channels = Channel.select(:channel).count
     Channel.connection.disconnect!
     return channels
   end
 
   def get_user_total
     User.establish_connection(@db)
-    users = User.select(:Nick).count
+    users = User.select(:nick).count
     User.connection.disconnect!
     return users
   end
@@ -451,8 +432,8 @@ class IRCLib
   def get_oper_total
     i = 0
     User.establish_connection(@db)
-    User.select(:UModes).each { |d|
-      i+=1 if d["UModes"].include? 'o' or d["UModes"].include? 'O' and !d["UModes"].include? 'S'
+    User.select(:umodes).each { |d|
+      i+=1 if d[:umodes].include? 'o' or d[:umodes].include? 'O' and !d[:umodes].include? 'S'
     }
     User.connection.disconnect!
     return i
@@ -461,7 +442,7 @@ class IRCLib
   def get_services_total
     i = 0
     User.establish_connection(@db)
-    User.select(:UModes).each { |d| i+=1 if d["UModes"].include? 'S' }
+    User.select(:umodes).each { |d| i+=1 if d[:umodes].include? 'S' }
     User.connection.disconnect!
     return i
   end
