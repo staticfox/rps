@@ -200,7 +200,6 @@ class IRCMsg
     topic = data[3..-1].join(' ')[1..-1]
 
     user = User.where(uid: data[0][1..-1]).first
-    }
 
     if uobj.nil?
       setter = "unknown"
