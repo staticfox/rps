@@ -380,7 +380,7 @@ class RootservCommands
       @irc.notice @client_sid, target, "##{channel} does not exist"
     else
       @irc.client_set_mode @client_sid, "#{chanobj[:channel]} #{modes}"
-      @irc.notice @client_sid, target, "Set mode #{modes} on ##{channel}"
+      @irc.notice @client_sid, target, "Set mode #{modes} on #{channel}"
       @irc.wallop @client_sid, "\x02#{@irc.get_nick_from_uid target}\x02 used \x02MODE\x02 on \x02#{chanobj[:channel]}\x02 (\x02#{modes}\x02)"
     end
   end
