@@ -201,23 +201,23 @@ class IRCMsg
 
     user = User.where(uid: data[0][1..-1]).first
 
-    if uobj.nil?
+    if user.nil?
       setter = "unknown"
     else
-      if uobj["CHost"] == '*'
-        if uobj["Host"] == '*'
-          uhost = uobj["IP"]
+      if user[:chost] == '*'
+        if user[:host] == '*'
+          uhost = user[:ip]
         else
-          uhost = uobj["Host"]
+          uhost = user[:host]
         end
       else
-        uhost = uobj["CHost"]
+        uhost = user[:chost]
       end
-      setter = "#{uobj["Nick"]}!#{uobj["Ident"]}@#{uhost}"
+      setter = "#{user[:nick]}!#{user[:ident]}@#{uhost}"
     end
 
     query = Channel.find_by(channel: data[2])
-    query.update(topic: topic, topic_setat: Time.new.topic, topic_setby: setter)
+    query.update(topic: topic, topic_setat: Time.new.to_i, topic_setby: setter)
     Channel.connection.disconnect!
   end
 
