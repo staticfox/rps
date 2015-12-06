@@ -53,24 +53,12 @@ class ModuleServClient
     @irc.remove_client @client_sid, message
   end
 
-   def get_stats
-    GC.start
-    num = `cat /proc/#{Process.pid}/status | grep "Threads"`.strip
-    num = num.split("\t")
-
-    ram = `cat /proc/#{Process.pid}/status | grep "VmSize"`.strip
-    ram = ram.split("\t")
-    return "[STATUS] Currently using #{num[1]} threads and #{ram[1][0..-3].to_i/1024} MB of memory."
-  end
-
   def handle_privmsg hash
     target = hash["target"]
     target = hash["from"] if target == @client_sid
 
     control_channels = []
     @ms["control_channels"].split(',').each { |c| control_channels << c }
-
-    @irc.privmsg @client_sid, target, get_stats if hash["command"] == "!status" and control_channels.include? target
 
     if hash["command"] == "!module" and control_channels.include? target
       cp = hash["parameters"].split(' ')
@@ -151,6 +139,5 @@ class ModuleServClient
         @irc.squit @parameters["server_name"], param
       end
     end
-
   end
 end
