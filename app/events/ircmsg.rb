@@ -1,13 +1,6 @@
-require 'active_record'
 require_relative '../libs/channel.rb'
 require_relative '../libs/server.rb'
 require_relative '../libs/user.rb'
-
-class User < ActiveRecord::Base
-end
-
-class UserInChannel < ActiveRecord::Base
-end
 
 class IRCMsg
 
@@ -169,8 +162,6 @@ class IRCMsg
       uplink.desc = data.split(' ')[3..-1].join(' ')[1..-1]
       client.uplink = uplink
       @e.Run "ServerIntroduced", client, uplink
-    else
-      puts "IN SERVER COULDNT FIND UPLINK"
     end
   end
 
@@ -474,8 +465,7 @@ class IRCMsg
     return nil if adding == nil
 
     offset = 0
-    # Only modes we care about is +b, +e and +P
-    # We do need to keep track of all other param modes for offset though
+
     modes[0].each_char do |char|
       case char
       when '+'
