@@ -406,7 +406,7 @@ class RootservCommands
     @irc.notice @client_sid, target, " "
     @irc.notice @client_sid, target, "UID: #{targetobj.uid}"
     @irc.notice @client_sid, target, "Signed on: #{DateTime.strptime(targetobj.ts.to_s, '%s').in_time_zone('America/New_York').strftime("%A %B %d %Y @ %l:%M %P %z")} (#{ChronicDuration.output(Time.new.to_i - targetobj.ts.to_i)} ago)"
-    @irc.notice @client_sid, target, "SSL: #{@irc.is_user_ssl_connected targetobj.uid ? "Yes" : "No"}"
+    @irc.notice @client_sid, target, "SSL: #{targetobj.modes.include?('Z') ? "Yes" : "No"}"
     @irc.notice @client_sid, target, "CertFP: #{targetobj.certfp}" if targetobj.certfp
     @irc.notice @client_sid, target, "Real nick!user@host: #{targetobj.nick}!#{targetobj.ident}@#{targetobj.host == "*" ? targetobj.ip : targetobj.host}"
     @irc.notice @client_sid, target, "IP: #{targetobj.ip}"

@@ -296,12 +296,6 @@ class IRCLib
     return c.is_voice u
   end
 
-  def is_user_ssl_connected uid
-    u = UserStruct.find uid
-    return false if !u
-    return u.modes.include? 'Z'
-  end
-
   def get_account_from_uid uid
     u = UserStruct.find uid
     return false if !u
