@@ -47,7 +47,7 @@ class BotWeather
 
     if ["!weather", "!w"].include? hash["command"].downcase
       run(hash["parameters"]).each do |line|
-        @irc.privmsg @client_sid, target, line
+        @irc.privmsg @client_sid, target, line if line
       end
     end
 
