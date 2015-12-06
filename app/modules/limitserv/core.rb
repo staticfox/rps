@@ -257,14 +257,14 @@ class LimitServCore
 
     @e.on_event do |type, name, sock|
       if type == "LimitServ-Init"
-        @irc = IRCLib.new name, sock, @db
+        @irc = IRCLib.new name, sock
         join_channels
       end
     end
 
     @e.on_event do |type, hash|
       if type == "LimitServ-Chat"
-        @irc = IRCLib.new hash["name"], hash["sock"], @db if @irc.nil?
+        @irc = IRCLib.new hash["name"], hash["sock"] if @irc.nil?
         if hash["target"] == @client_sid
           handle_privmsg hash if hash["msgtype"] == "PRIVMSG" or hash["msgtype"] == "NOTICE"
         end
@@ -274,7 +274,7 @@ class LimitServCore
     @e.on_event do |type, name, sock, data|
       if type == "IRCChanJoin" or type == "IRCChanPart" or type == "IRCPing" or type == "IRCClientQuit"
         config = @c.Get if @irc.nil?
-        @irc = IRCLib.new name, sock, @db if @irc.nil?
+        @irc = IRCLib.new name, sock if @irc.nil?
         run_checks
       elsif type == "IRCChanSJoin"
         burst_data data

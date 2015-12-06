@@ -127,7 +127,7 @@ class BotQuotes
       if type == "Bot-Chat"
         if !@initialized
           config = @c.Get
-          @irc = IRCLib.new hash["name"], hash["sock"], config["connections"]["databases"]["test"]
+          @irc = IRCLib.new hash["name"], hash["sock"]
           @initialized = true
         end
         handle_privmsg hash if hash["msgtype"] == "PRIVMSG"

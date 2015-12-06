@@ -156,7 +156,7 @@ class BotClient
         @config = @c.Get
         @bot = @config["bot"]
         @db  = @config["connections"]["databases"]["test"]
-        @irc = IRCLib.new name, sock, @db
+        @irc = IRCLib.new name, sock
         connect_client
         sleep 1
         join_channels
@@ -176,7 +176,7 @@ class BotClient
           @config = @c.Get
           @bot = @config["bot"]
           @db  = @config["connections"]["databases"]["test"]
-          @irc = IRCLib.new hash["name"], hash["sock"], @db
+          @irc = IRCLib.new hash["name"], hash["sock"]
           connect_client
           sleep 1
           join_channels

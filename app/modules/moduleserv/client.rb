@@ -113,7 +113,7 @@ class ModuleServClient
       if type == "IRCClientInit"
         @config = @c.Get
         @ms = @config["moduleserv"]
-        @irc = IRCLib.new name, sock, @config["connections"]["databases"]["test"]
+        @irc = IRCLib.new name, sock
         connect_client
         @initialized = true
       end
@@ -130,7 +130,7 @@ class ModuleServClient
         if !@initialized
           @config = @c.Get
           @ms = @config["moduleserv"]
-          @irc = IRCLib.new hash["name"], hash["sock"], @config["connections"]["databases"]["test"]
+          @irc = IRCLib.new hash["name"], hash["sock"]
           connect_client
           @initialized = true
           sleep 1

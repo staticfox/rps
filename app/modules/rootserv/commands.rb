@@ -649,7 +649,7 @@ class RootservCommands
           @config = @c.Get
           @db = @config["connections"]["databases"]["test"]
           @rs = @config["rootserv"]
-          @irc = IRCLib.new hash["name"], hash["sock"], @config["connections"]["databases"]["test"]
+          @irc = IRCLib.new hash["name"], hash["sock"]
           @initialized = true
         end
         handle_privmsg hash if hash["msgtype"] == "PRIVMSG"

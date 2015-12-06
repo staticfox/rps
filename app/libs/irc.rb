@@ -361,10 +361,9 @@ class IRCLib
     return Server.servers_count
   end
 
-  def initialize name, sock, db
+  def initialize name, sock
     @name = name
     @sock = sock
     @bots = []
-    @db = db
   end
 end

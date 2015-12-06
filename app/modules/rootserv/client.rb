@@ -79,7 +79,7 @@ class RootservClient
       if type == "IRCClientInit"
         @config = @c.Get
         @rs = @config["rootserv"]
-        @irc = IRCLib.new name, sock, @config["connections"]["databases"]["test"]
+        @irc = IRCLib.new name, sock
         connect_client
         @initialized = true
       end
@@ -95,7 +95,7 @@ class RootservClient
       if type == "IRCChat"
         if !@initialized
           @config = @c.Get
-          @irc = IRCLib.new hash["name"], hash["sock"], @config["connections"]["databases"]["test"]
+          @irc = IRCLib.new hash["name"], hash["sock"]
           connect_client
           sleep 1
           join_channels
