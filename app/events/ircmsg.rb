@@ -321,7 +321,7 @@ class IRCMsg
       u = UserStruct.find data[4][1..-1]
       u.nickserv = '*'
     else
-      u = UserStruct.find data[4][1..-1]
+      u = UserStruct.find data[4]
       u.nickserv = data[5][1..-1]
     end
   end
