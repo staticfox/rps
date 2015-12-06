@@ -79,10 +79,7 @@ class IRCMsg
 
     parse_modestr c, data[4..(4+offset)]
 
-    if data[5 + offset] == nil or data[5 + offset] == ':'
-      puts "[handle_sjoin] Nothing left"
-      return
-    end
+    return if data[5 + offset] == nil or data[5 + offset] == ':'
 
     data[5 + offset..-1].each do |user|
       # First number is start of UID because of SID definition
@@ -133,7 +130,7 @@ class IRCMsg
     s.time_connected = Time.now.to_i
 
     uplink = Server.find_by_sid data[0][1..-1]
-    s.uplink = uplink if uplink
+    s.uplink = uplink
     @e.Run "ServerIntroduced", s, uplink
   end
 
