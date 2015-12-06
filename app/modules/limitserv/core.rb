@@ -50,10 +50,10 @@ class LimitServCore
     return if queries.count == 0
     queries.each { |query|
       @assigned_channels << query.channel
+      sendto_debug "JOINED: #{query.channel}"
       next if @irc.is_user_in_channel @client_sid, query.channel
       @irc.client_join_channel @client_sid, query.channel
       @irc.client_set_mode @client_sid, "#{query.channel} +o #{@client_sid}"
-      sendto_debug "JOINED: #{query.channel}"
     }
     LimitServ_Channel.connection.disconnect!
   end
