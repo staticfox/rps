@@ -21,6 +21,13 @@ class RootservClient
       @irc.client_join_channel @client_sid, i
       @irc.client_set_mode @client_sid, "#{i} +o #{@rs["nick"]}"
     }
+    if @rs["debug_channels"]
+      @rs["debug_channels"].split(',').each { |i|
+        next if joined.include? i; joined << i
+        @irc.client_join_channel @client_sid, i
+        @irc.client_set_mode @client_sid, "#{i} +o #{@rs["nick"]}"
+      }
+    end
   end
 
   def shutdown message
@@ -28,8 +35,19 @@ class RootservClient
   end
 
   def sendto_debug message
+    @rs["control_channels"].split(',').each { |x| @irc.privmsg @client_sid, x, message } if @rs["control_channels"]
+  end
+
+  def sendto_not_so_important_debug message
     @rs["debug_channels"].split(',').each { |x| @irc.privmsg @client_sid, x, message } if @rs["debug_channels"]
-    @rs["control_channels"].split(',').each { |x| @irc.privmsg @client_sid, x, message }
+  end
+
+  def announce_new_server client, hub
+    sendto_not_so_important_debug "#{client.name}[#{client.sid ? client.sid : "Juped"}] introduced by #{hub.name}[#{hub.sid}]"
+  end
+
+  def announce_split_server server, count
+    sendto_not_so_important_debug "#{server.name} split from #{server.uplink.name} - #{count} user#{count == 1 ? '' : 's'} lost"
   end
 
   def handle_privmsg hash
@@ -92,5 +110,16 @@ class RootservClient
       shutdown param if signal == "Shutdown"
     end
 
+    @e.on_event do |event, client, hub|
+      announce_new_server client, hub if event == "ServerIntroduced"
+    end
+
+    @e.on_event do |event, server, count|
+      announce_split_server server, count if event == "ServerSplit"
+    end
+
+    @e.on_event do |event, message|
+      sendto_debug message if event == "DebugRootServ"
+    end
   end
 end

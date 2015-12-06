@@ -1,9 +1,9 @@
 require 'active_record'
+require_relative '../libs/channel.rb'
+require_relative '../libs/server.rb'
+require_relative '../libs/user.rb'
 
 class User < ActiveRecord::Base
-end
-
-class Channel < ActiveRecord::Base
 end
 
 class UserInChannel < ActiveRecord::Base
@@ -39,6 +39,18 @@ class IRCMsg
     @e.Run "IRCPing", name, sock, line
   end
 
+  def handle_rping name, sock, line
+    #:41X PING Terminus.GeeksIRC.net :30X
+    data = line.split(' ')
+    remote_sid = data[0][1..-1]
+    remote_name = data[2]
+    our_sid = data[3][1..-1]
+
+    if our_sid == @params["sid"]
+      send_data name, sock, ":#{our_sid} PONG #{@params["server_name"]} :#{remote_sid}"
+    end
+  end
+
   def handle_numeric name, sock, line, numeric
     hash = {"name" => name, "sock" => sock, "line" => line, "numeric" => numeric}
     @e.Run "IRCNumeric", hash
@@ -48,29 +60,13 @@ class IRCMsg
     return if data.include?("ENCAP * GCAP :") or data.include?(" ENCAP ")
     data = data.split(' ')
 
-    User.establish_connection(@config["connections"]["databases"]["test"])
+    s = Server.find_by_sid data[0][1..-1]
+    u = UserStruct.new(s, data[9], data[2], data[6], data[7], data[10], data[8], data[4], data[5][1..-1], data[12..-1].join(' ')[1..-1])
+    u.nickserv = data[11]
+    u.modes = data[5].tr '+', ''
+    s.usercount +=1
 
-    user = User.new
-    user.nick   = data[2] ? data[2] : ""
-    user.ctime  = data[4] ? data[4] : ""
-    user.umodes = data[5][1..-1] ? data[5][1..-1] : ""
-    user.ident  = data[6] ? data[6] : ""
-    user.chost  = data[7] ? data[7] : ""
-    user.ip     = data[8] ? data[8] : ""
-    user.uid    = data[9] ? data[9] : ""
-    user.host   = data[10] ? data[10] : ""
-    @ircservers.each do |hash|
-      user.server = hash["server"] if data[0][1..-1] == hash["SID"]
-      server = hash["server"]
-    end
-
-    user.server = "unknown.server" if user.server.nil?
-    server = "unknown.server" if server.nil?
-    user.nickserv = data[11]
-    user.save
-    User.connection.disconnect!
-
-    @e.Run "EUID", data[2], server
+    @e.Run "EUID", data[2], s.sid
   end
 
   def handle_sjoin name, sock, data
@@ -80,103 +76,145 @@ class IRCMsg
     return if data.count < 4
     return if data[4].nil?
 
-    Channel.establish_connection(@config["connections"]["databases"]["test"])
-    channel = Channel.new
-    channel.ctime   = data[2]
-    thechannel      = data[3]
-    channel.channel = data[3]
-    channel.modes   = data[4]
-    channel.save
-    Channel.connection.disconnect!
+    c = ChannelStruct.find_by_name data[3]
+    c ||= ChannelStruct.new data[3], data[2]
 
-    if !users.nil? and !users.include? ' SJOIN '
-      users = users.split(' ')
-      UserInChannel.establish_connection(@config["connections"]["databases"]["test"])
-      users.each do |user|
-        modes = ""
-        modes << "q" if user.include?("~")
-        modes << "a" if user.include?("&")
-        modes << "o" if user.include?("@")
-        modes << "h" if user.include?("%")
-        modes << "v" if user.include?("+")
-        length = modes.length
-        nickname = user[length..-1]
-        userinchannel = UserInChannel.new
-        userinchannel.channel = thechannel
-        userinchannel.user = nickname
-        userinchannel.modes = modes
-        userinchannel.save
+    offset = 0
+    data[4].each_char do |c|
+      offset += 1 if ['x','k','l','I','f','j','e','b','q','a''o','h','v'].include? c
+    end
+
+    parse_modestr c, data[4..(4+offset)]
+
+    if data[5 + offset] == nil or data[5 + offset] == ':'
+      puts "[handle_sjoin] Nothing left"
+      return
+    end
+
+    data[5 + offset..-1].each do |user|
+      # First number is start of UID because of SID definition
+      idx = 0
+      owner = admin = op = halfop = voice = false
+      user.each_char do |c|
+        case c
+        when '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'
+          break
+        when '~'
+          owner = true
+          idx += 1
+        when '&'
+          admin = true
+          idx += 1
+        when '@'
+          op = true
+          idx += 1
+        when '%'
+          halfop = true
+          idx += 1
+        when '+'
+          voice = true
+          idx += 1
+        else
+          idx += 1
+        end
       end
-      UserInChannel.connection.disconnect!
+      begin
+        u = UserStruct.find_by_uid(user[idx..-1])
+        c.add_user u
+        u.join c
+        c.add_access '~', u if owner
+        c.add_access '&', u if admin
+        c.add_access '@', u if op
+        c.add_access '%', u if halfop
+        c.add_access '+', u if voice
+      rescue NoMethodError => e
+        puts "Error getting UID (#{user[(idx - 1)..-1]} for idx=#{idx} and user=#{user}): #{e.inspect}"
+      end
     end
     @e.Run "IRCChanSJoin", name, sock, data
   end
 
   def handle_sid name, sock, data
     data = data.split(' ')
-    hash = {"SID" => data[4], "server" => data[2]}
-    #puts hash
-    @ircservers.push(hash)
+    s = Server.new data[4], data[2], data[5..-1].join(' ')[1..-1]
+    s.time_connected = Time.now.to_i
+
+    uplink = Server.find_by_sid data[0][1..-1]
+    s.uplink = uplink if uplink
+    @e.Run "ServerIntroduced", s, uplink
+  end
+
+  def handle_server2 name, sock, data
+    data = data.split(' ')
+    s = Server.new nil, data[2], data[4..-1].join(' ')[1..-1]
+    s.time_connected = Time.now.to_i
+
+    uplink = Server.find_by_name data[0][1..-1]
+    s.uplink = uplink
+    @e.Run "ServerIntroduced", s, uplink
   end
 
   def handle_pass name, sock, data
     data = data.split(' ')
-    hash = {"SID" => data[-1][1..-1], "server" => "rpsuplink"}
-    @ircservers.push(hash)
+    s = Server.new data[-1][1..-1], 'rpsuplink', ''
+    s.time_connected = Time.now.to_i
   end
 
   def handle_server name, sock, data
     server = data.split(' ')[1]
-    @ircservers.collect { |hash|
-      if hash["server"] == "rpsuplink"
-        hash["server"] = server
+    uplink = Server.find_by_name 'rpsuplink'
+    if uplink
+      client = Server.find_by_sid @params["sid"]
+      uplink.name = server
+      uplink.desc = data.split(' ')[3..-1].join(' ')[1..-1]
+      client.uplink = uplink
+      @e.Run "ServerIntroduced", client, uplink
+    else
+      puts "IN SERVER COULDNT FIND UPLINK"
+    end
+  end
+
+  def handle_split split_server
+    splits = Server.find_children split_server
+
+    splits.each { |x|
+      @e.Run "ServerSplit", x, UserStruct.user_count_by_server(x.sid)
+      split_users = UserStruct.all_users_by_server x.sid
+      if split_users.count > 0
+        split_users.each { |user|
+          user.channels.each { |c| c.del_user user }
+          user.part_all
+          user.server.usercount -= 1
+          user.destroy if user
+        }
       end
+      x.destroy
     }
   end
 
   def handle_squit name, sock, data
-    server = data.split(' ')[1]
-    sname = ""
-    @ircservers.each { |s| sname = s["server"] if server == s["SID"] }
-    @ircservers.delete_if { |s| sname == s["server"] }
-    if sname.empty?
-      puts "SENDTO_DEBUG UNKNOWN SERVER"
-      return
-    end
-    User.establish_connection(@config["connections"]["databases"]["test"])
-    UserInChannel.establish_connection(@config["connections"]["databases"]["test"])
-    user = User.where(server: sname)
-    user.each { |q|
-      uc = UserInChannel.where(user: q[:uid])
-      uc.delete_all
-    }
-    user.delete_all
-    User.connection.disconnect!
-    UserInChannel.connection.disconnect!
+    data = data.split(' ')
+    split_sid = data[1]
+    split_server = Server.find_by_sid split_sid
+
+    return puts "Unknown server split" if !split_server
+
+    handle_split split_server
   end
 
   def handle_kill name, sock, data
     nick = data.split(' ')[2]
 
-    User.establish_connection(@config["connections"]["databases"]["test"])
-    user = User.where(uid: nick)
-    user.delete_all
-
-    UserInChannel.establish_connection(@config["connections"]["databases"]["test"])
-    channel = UserInChannel.where(user: nick)
-    channel.delete_all
-    User.connection.disconnect!
-    UserInChannel.connection.disconnect!
-
+    u = UserStruct.find nick
+    u.server.usercount -= 1
+    u.destroy if u
     @e.Run "IRCClientQuit", name, sock, data
   end
 
   def handle_save name, sock, data
     uid = data.split(' ')[2]
-    User.establish_connection(@config["connections"]["databases"]["test"])
-    user = User.find_by(uid: uid)
-    user.update(nick: uid)
-    User.connection.disconnect!
+    u = UserStruct.find uid
+    uid.nick = uid
   end
 
   def handle_tb name, sock, data
@@ -186,136 +224,137 @@ class IRCMsg
     return if data.count < 4
     return if data[4].nil?
     topic = data[5..-1].join(' ')[1..-1]
-    Channel.establish_connection(@config["connections"]["databases"]["test"])
-    query = Channel.find_by(channel: data[2])
-    query.update(topic: topic, topic_setat: data[3], topic_setby: data[4])
-    Channel.connection.disconnect!
+
+    c = ChannelStruct.find_by_name data[2]
+    return if !c
+    c.topic_name   = topic
+    c.topic_set_at = data[3]
+    c.topic_set_by = data[4]
+  end
+
+  # TODO better error handler
+  def handle_bmask name, sock, data
+    data = data.split(' ')
+    c = ChannelStruct.find_by_name data[3]
+
+    return if !c
+    ts = data[2].to_i
+
+    return if c.ts < ts
+    return if !['b','e','x'].include? data[4]
+
+    ban_list = data[5..-1].join(' ')[1..-1].split(' ')
+    ban_list.each { |ban| c.add_ban ban, data[4] }
   end
 
   def handle_topic name, sock, data
     data = data.split(' ')
-    User.establish_connection(@config["connections"]["databases"]["test"])
-    Channel.establish_connection(@config["connections"]["databases"]["test"])
 
     topic = data[3..-1].join(' ')[1..-1]
 
-    user = User.where(uid: data[0][1..-1]).first
-
-    if user.nil?
-      setter = "unknown"
-    else
-      if user[:chost] == '*'
-        if user[:host] == '*'
-          uhost = user[:ip]
-        else
-          uhost = user[:host]
-        end
-      else
-        uhost = user[:chost]
-      end
-      setter = "#{user[:nick]}!#{user[:ident]}@#{uhost}"
-    end
-
-    query = Channel.find_by(channel: data[2])
-    query.update(topic: topic, topic_setat: Time.new.to_i, topic_setby: setter)
-    Channel.connection.disconnect!
+    u = UserStruct.find_by_uid data[0][1..-1]
+    c = ChannelStruct.find_by_name data[2]
+    c.topic_name = topic
+    c.topic_set_at = Time.new.to_i
+    c.topic_set_by = u ? "#{u.nick}!#{u.ident}@#{u.chost}" : 'unknown'
   end
 
   def handle_quit name, sock, data
     data = data.split(' ')
-    nick = data[0][1..-1]
+    nick = uid = data[0][1..-1]
 
-    User.establish_connection(@config["connections"]["databases"]["test"])
-    user = User.where(uid: nick)
-    user.delete_all
-
-    UserInChannel.establish_connection(@config["connections"]["databases"]["test"])
-    channel = UserInChannel.where(user: nick)
-    channel.delete_all
-    User.connection.disconnect!
-    UserInChannel.connection.disconnect!
+    u = UserStruct.find_by_uid uid
+    u.channels.each { |c| c.del_user u }
+    u.part_all
+    u.server.usercount -= 1
+    u.destroy if u
 
     @e.Run "IRCClientQuit", name, sock, data
   end
 
   def handle_join name, sock, data
     data = data.split(' ')
-    UserInChannel.establish_connection(@config["connections"]["databases"]["test"])
+
+    u = UserStruct.find data[0][1..-1]
+    return if !u
+
     if data[2] == '0'
-      userinchannel = UserInChannel.where(user: data[0][1..-1])
-      userinchannel.delete_all
-      @e.Run "IRCChanPart", name, sock, data
+      u.channels.each { |c| c.del_user u }
+      u.part_all
     else
-      userinchannel = UserInChannel.new
-      userinchannel.channel = data[3]
-      userinchannel.user    = data[0][1..-1]
-      userinchannel.modes   = ""
-      userinchannel.save
-      @e.Run "IRCChanJoin", name, sock, data
+      c = ChannelStruct.find_by_name data[3]
+      c ||= ChannelStruct.new data[3], data[1]
+      c.add_user u
+      u.join c
     end
-    UserInChannel.connection.disconnect!
+    @e.Run "IRCChanPart", name, sock, data
   end
 
   def handle_part name, sock, data
     data = data.split(' ')
-    UserInChannel.establish_connection(@config["connections"]["databases"]["test"])
-    userinchannel = UserInChannel.where(user: data[0][1..-1], channel: data[2])
-    userinchannel.delete_all
+
+    c = ChannelStruct.find_by_name data[2]
+    u = UserStruct.find data[0][1..-1]
+    c.del_user u
+    u.part c
+
     @e.Run "IRCChanPart", name, sock, data
-    UserInChannel.connection.disconnect!
   end
 
   def handle_kick name, sock, data
     data = data.split(' ')
-    UserInChannel.establish_connection(@config["connections"]["databases"]["test"])
-    userinchannel = UserInChannel.where(user: data[3], channel: data[2])
-    userinchannel.delete_all
-    UserInChannel.connection.disconnect!
+
+    c = ChannelStruct.find_by_name data[2]
+    u = UserStruct.find data[3]
+    c.del_user u
+    u.part c
   end
 
   def handle_nick name, sock, data
     data = data.split(' ')
-    User.establish_connection(@config["connections"]["databases"]["test"])
-    user = User.find_by(uid: data[0][1..-1])
-    user.update(nick: data[2], ctime: data[3][1..-1])
-    User.connection.disconnect!
+
+    u = UserStruct.find data[0][1..-1]
+    return if !u
+    u.nick = data[2]
+    u.ts   = data[3][1..-1].to_i
   end
 
   def handle_chghost name, sock, data
     data = data.split(' ')
-    User.establish_connection(@config["connections"]["databases"]["test"])
-    user = User.find_by(uid: data[2])
-    user.update(chost: data[3])
-    User.connection.disconnect!
+
+    u = UserStruct.find_by_uid data[2]
+    u.chost = data[3]
   end
 
   def handle_su name, sock, data
     data = data.split(' ')
-    User.establish_connection(@config["connections"]["databases"]["test"])
+
     if data.count == 5
-      uid  = data[4][1..-1]
-      acct = '*'
+      u = UserStruct.find data[4][1..-1]
+      u.nickserv = '*'
     else
-      uid  = data[4]
-      acct = data[5][1..-1]
+      u = UserStruct.find data[4][1..-1]
+      u.nickserv = data[5][1..-1]
     end
-    user = User.find_by(uid: uid)
-    user.update(nickserv: acct)
-    User.connection.disconnect!
   end
 
   def handle_certfp name, sock, data
     data = data.split(' ')
-    User.establish_connection(@config["connections"]["databases"]["test"])
-    user = User.find_by(uid: data[0][1..-1])
-    user.update(certfp: data[4][1..-1])
-    User.connection.disconnect!
+
+    u = UserStruct.find data[0][1..-1]
+    u.certfp = data[4][1..-1]
   end
 
   def handle_tmode name, sock, data
     data = data.split(' ')
 
-    UserInChannel.establish_connection(@config["connections"]["databases"]["test"])
+    c = ChannelStruct.find_by_name data[3]
+
+    return nil if c == nil
+    return if data[2].to_i > c.ts
+
+    parse_modestr c, data[4..-1]
+
     i = 5
     # Are we starting off with and addition or subtraction?
     addnow = data[4][0] == '+'
@@ -339,58 +378,151 @@ class IRCMsg
 
       # Channel operator status changes
       if ['q','a','o','h','v'].include? m
+        u = UserStruct.find data[i]
         if addnow
-          queryadd = UserInChannel.find_by(user: data[i], channel: data[3])
-          if queryadd
-            curmodes = queryadd[:modes] ? queryadd[:modes] : ''
-            queryadd.update(modes: ('' + m).split(//).uniq.join)
-          else
-            queryadd = UserInChannel.new
-            queryadd.channel = data[3]
-            queryadd.user    = data[i]
-            queryadd.modes   = m
-            queryadd.save
+          case m
+          when 'q'
+            c.add_access '~', u
+            i+=1
+            next
+          when 'a'
+            c.add_access '&', u
+            i+=1
+            next
+          when 'o'
+            c.add_access '@', u
+            i+=1
+            next
+          when 'h'
+            c.add_access '%', u
+            i+=1
+            next
+          when 'v'
+            c.add_access '+', u
+            i+=1
+            next
           end
-          i+=1
-          next
         end
 
         if !addnow
-          queryminus = UserInChannel.where(user: data[i], channel: data[3]).first
-          curmodes = queryminus[:modes] ? queryminus[:modes] : ''
-          newmode = curmodes.to_s.tr(m, '')
-          queryminus.update(modes: newmode)
-          i+=1
-          next
+          case m
+          when 'q'
+            c.del_access '~', u
+            i+=1
+            next
+          when 'a'
+            c.del_access '&', u
+            i+=1
+            next
+          when 'o'
+            c.del_access '@', u
+            i+=1
+            next
+          when 'h'
+            c.del_access '%', u
+            i+=1
+            next
+          when 'v'
+            c.del_access '+', u
+            i+=1
+            next
+          end
         end
+        i+=1
       end
     }
-    UserInChannel.connection.disconnect!
   end
 
   def handle_mode name, sock, data
     modes = data.split(':')
     modes = modes[2]
-    data = data.split(' ')
+    data  = data.split(' ')
 
-    User.establish_connection(@config["connections"]["databases"]["test"])
-    uid = User.sanitize data[2]
+    u = UserStruct.find data[0][1..-1]
+    return if !u
 
     if modes.include? "+"
-      modes = modes[1..-1]
-      query = User.find_by(uid: data[2])
-      query.update(umodes: (query.umodes + modes).split(//).uniq.sort.join)
+
+      if modes.include? 'o'
+        u.isoper = true
+      elsif modes.include? 'a'
+        u.isadmin = true
+      end
+
+      structmodes = u.modes
+      modes   = modes[1..-1]
+      u.modes = (structmodes+modes).split(//).uniq.sort.join
     end
 
     if modes.include?("-")
       modes = modes[1..-1].split('')
       modes.each do |mode|
-        query = User.where(uid: data[2]).first
-        newmode = query[:umodes].to_s.tr(mode, '')
-        query.update(umodes: newmode)
+        structnewmode = u.modes.to_s.tr(mode, '')
+        u.modes = structnewmode
       end
     end
-    User.connection.disconnect!
+  end
+
+  def parse_modestr c, modes
+    adding = if modes[0][0] == '+'
+               true
+             elsif modes[0][0] == '-'
+               false
+             else
+               nil
+             end
+    return nil if adding == nil
+
+    offset = 0
+    # Only modes we care about is +b, +e and +P
+    # We do need to keep track of all other param modes for offset though
+    modes[0].each_char do |char|
+      case char
+      when '+'
+        adding = true
+      when '-'
+        adding = false
+      when 'b'
+        if adding
+          c.add_ban modes[1 + offset], 'b'
+        else
+          c.del_ban modes[1 + offset], 'b'
+        end
+        offset += 1
+      when 'e'
+        if adding
+          c.add_ban modes[1 + offset], 'e'
+        else
+          c.del_ban modes[1 + offset], 'e'
+        end
+        offset += 1
+      when 'x'
+        if adding
+          c.add_ban modes[1 + offset], 'x'
+        else
+          c.del_ban modes[1 + offset], 'x'
+        end
+        offset += 1
+      when 'k', 'l', 'I', 'f', 'j', 'q', 'a', 'o', 'h', 'v'
+        offset += 1
+      when 'P'
+        if adding
+          c.modes += char
+        else
+          c.modes.tr char, ''
+        end
+        c.set_permanent adding
+        c.destroy if !adding && c.get_user_count == 0
+      else
+        if adding
+          c.modes += char
+        else
+          c.modes.tr(char, '')
+        end
+      end
+    end
+
+    return nil
   end
 
   def init e, m, c, d
@@ -399,21 +531,11 @@ class IRCMsg
     @c = c
     @d = d
 
-    @ircservers = []
-
     @config = c.Get
+    @params = @config["connections"]["clients"]["irc"]["parameters"]
 
-    User.establish_connection(@config["connections"]["databases"]["test"])
-    Channel.establish_connection(@config["connections"]["databases"]["test"])
-    UserInChannel.establish_connection(@config["connections"]["databases"]["test"])
-
-    User.destroy_all
-    Channel.destroy_all
-    UserInChannel.destroy_all
-
-    User.connection.disconnect!
-    Channel.connection.disconnect!
-    UserInChannel.connection.disconnect!
+    s = Server.new @params["sid"], @params["server_name"], @params["server_description"]
+    s.time_connected = Time.now.to_i
 
     @e.on_event do |type, name, sock, data|
       if type == "IRCMsg"
@@ -428,6 +550,8 @@ class IRCMsg
         handle_server  name, sock, data if opt[0] == "SERVER"
         handle_ping    name, sock, data if opt[0] == "PING"
         handle_squit   name, sock, data if opt[0] == "SQUIT"
+        handle_bmask   name, sock, data if opt[1] == "BMASK"
+        handle_server2 name, sock, data if opt[1] == "SERVER"
         #handle_kill    name, sock, data if opt[1] == "KILL" # Useless?
         #handle_save    name, sock, data if opt[1] == "SAVE" # Useless?
         handle_chat    name, sock, data if opt[1] == "PRIVMSG" or opt[1] == "NOTICE"
@@ -446,6 +570,7 @@ class IRCMsg
         handle_topic   name, sock, data if opt[1] == "TOPIC"
         handle_su      name, sock, data if opt[3] == "SU"
         handle_certfp  name, sock, data if opt[1] == "ENCAP" and opt[3] == "CERTFP"
+        handle_rping   name, sock, data if opt[1] == "PING"
       end
     end
   end

@@ -379,7 +379,7 @@ class RootservCommands
     if !chanobj
       @irc.notice @client_sid, target, "##{channel} does not exist"
     else
-      @irc.client_set_mode @client_sid, "#{chanobj[:channel]} #{modes}"
+      @irc.client_set_mode @client_sid, "#{chanobj.channel} #{modes}"
       @irc.notice @client_sid, target, "Set mode #{modes} on #{channel}"
       @irc.wallop @client_sid, "\x02#{@irc.get_nick_from_uid target}\x02 used \x02MODE\x02 on \x02#{chanobj[:channel]}\x02 (\x02#{modes}\x02)"
     end
@@ -405,17 +405,17 @@ class RootservCommands
 
     @irc.notice @client_sid, target, "Information for \x02#{nick}\x02:"
     @irc.notice @client_sid, target, " "
-    @irc.notice @client_sid, target, "UID: #{targetobj[:uid]}"
-    @irc.notice @client_sid, target, "Signed on: #{DateTime.strptime(targetobj[:ctime], '%s').in_time_zone('America/New_York').strftime("%A %B %d %Y @ %l:%M %P %z")} (#{ChronicDuration.output(Time.new.to_i - targetobj[:ctime].to_i)} ago)"
-    @irc.notice @client_sid, target, "SSL: #{targetobj[:umodes].include?('Z') ? "Yes" : "No"}"
-    @irc.notice @client_sid, target, "CertFP: #{targetobj[:certfp]}" if targetobj[:certfp]
-    @irc.notice @client_sid, target, "Real nick!user@host: #{targetobj[:nick]}!#{targetobj[:ident]}@#{targetobj[:host] == "*" ? targetobj[:ip] : targetobj[:host]}"
-    @irc.notice @client_sid, target, "IP: #{targetobj[:ip]}"
-    @irc.notice @client_sid, target, "Cloaked host: #{targetobj[:chost]}"
-    @irc.notice @client_sid, target, "Server: #{targetobj[:server]}"
-    @irc.notice @client_sid, target, "Services account: #{targetobj[:nickserv] == "*" ? "Not logged in." : targetobj[:nickserv]}"
-    @irc.notice @client_sid, target, "User modes: #{targetobj[:umodes]}"
-    @irc.notice @client_sid, target, "Channels: #{@irc.get_user_channels(targetobj[:uid]).join(' ')}"
+    @irc.notice @client_sid, target, "UID: #{targetobj.uid}"
+    @irc.notice @client_sid, target, "Signed on: #{DateTime.strptime(targetobj.ts.to_s, '%s').in_time_zone('America/New_York').strftime("%A %B %d %Y @ %l:%M %P %z")} (#{ChronicDuration.output(Time.new.to_i - targetobj.ts.to_i)} ago)"
+    @irc.notice @client_sid, target, "SSL: #{@irc.is_user_ssl_connected targetobj.uid ? "Yes" : "No"}"
+    @irc.notice @client_sid, target, "CertFP: #{targetobj.certfp}" if targetobj.certfp
+    @irc.notice @client_sid, target, "Real nick!user@host: #{targetobj.nick}!#{targetobj.ident}@#{targetobj.host == "*" ? targetobj.ip : targetobj.host}"
+    @irc.notice @client_sid, target, "IP: #{targetobj.ip}"
+    @irc.notice @client_sid, target, "Cloaked host: #{targetobj.chost}"
+    @irc.notice @client_sid, target, "Server: #{targetobj.server.name}"
+    @irc.notice @client_sid, target, "Services account: #{targetobj.nickserv == "*" ? "Not logged in." : targetobj.nickserv}"
+    @irc.notice @client_sid, target, "User modes: #{targetobj.modes}"
+    @irc.notice @client_sid, target, "Channels: #{@irc.get_user_channels(targetobj.uid).join(' ')}"
     @irc.notice @client_sid, target, " "
     @irc.notice @client_sid, target, "End of whois information"
   end
@@ -434,20 +434,60 @@ class RootservCommands
     chanhash = @irc.get_chan_info chan
     return @irc.notice @client_sid, target, "Could not find channel #{chan}" if !chanhash
     usersarray = @irc.get_users_in_channel chan
-    @irc.notice @client_sid, target, "Information for \x02#{chanhash[:channel]}\x02:"
-    @irc.notice @client_sid, target, "Created on #{DateTime.strptime(chanhash[:ctime].to_s, '%s').in_time_zone('America/New_York').strftime("%A %B %d %Y @ %l:%M %P %z")} (#{ChronicDuration.output(Time.new.to_i - chanhash[:ctime].to_i)} ago)"
-    @irc.notice @client_sid, target, "Mode: #{chanhash[:modes]}"
-    @irc.notice @client_sid, target, "Topic: #{chanhash[:topic]}"
-    @irc.notice @client_sid, target, "Topic set by #{chanhash[:topic_setby]}" if chanhash[:topic_setby]
-    @irc.notice @client_sid, target, "Topic set on #{DateTime.strptime(chanhash[:topic_setat].to_s, '%s').in_time_zone('America/New_York').strftime("%A %B %d %Y @ %l:%M %P %z")} (#{ChronicDuration.output(Time.new.to_i - chanhash[:topic_setat].to_i)} ago)" if chanhash[:topic_setat]
+    @irc.notice @client_sid, target, "Information for \x02#{chanhash.name}\x02:"
+    @irc.notice @client_sid, target, "Created on #{DateTime.strptime(chanhash.ts.to_s, '%s').in_time_zone('America/New_York').strftime("%A %B %d %Y @ %l:%M %P %z")} (#{ChronicDuration.output(Time.new.to_i - chanhash.ts.to_i)} ago)"
+    @irc.notice @client_sid, target, "Mode: #{chanhash.modes}"
+    @irc.notice @client_sid, target, "Topic: #{chanhash.topic_name}"
+    @irc.notice @client_sid, target, "Topic set by #{chanhash.topic_set_by}" if !chanhash.topic_set_by.empty?
+    @irc.notice @client_sid, target, "Topic set on #{DateTime.strptime(chanhash.topic_set_at.to_s, '%s').in_time_zone('America/New_York').strftime("%A %B %d %Y @ %l:%M %P %z")} (#{ChronicDuration.output(Time.new.to_i - chanhash.topic_set_at.to_i)} ago)" if !chanhash.topic_set_at.empty?
     @irc.notice @client_sid, target, "Users:"
     if !usersarray.empty?
       usersarray.each { |x| @irc.notice @client_sid, target, "- #{x}" }
-      @irc.notice @client_sid, target, "#{usersarray.count} users in #{chanhash[:channel]}"
+      @irc.notice @client_sid, target, "#{usersarray.count} users in #{chanhash.name}"
     else
       @irc.notice @client_sid, target, "Channel is empty."
     end
     @irc.notice @client_sid, target, "End of chaninfo"
+  end
+
+  # TODO cleanup
+  def handle_checkban hash
+    target = hash["from"]
+    if !has_flag(@irc.get_account_from_uid(target), 'FBZ')
+      @irc.notice @client_sid, target, "Permission denied."
+      sendto_debug "Denied access to #{@irc.get_nick_from_uid target} [#{__method__.to_s}]"
+      return
+    end
+
+    return @irc.notice @client_sid, target, "User not specified" if hash["parameters"].empty?
+
+    nick = hash["parameters"].split(' ')[0]
+    targetobj = @irc.get_nick_object nick
+    return @irc.notice @client_sid, target, "Could not find user #{nick}" if !targetobj
+
+    cbans = @irc.get_channel_bans targetobj
+    if cbans and !cbans.empty?
+      @irc.notice @client_sid, target, "Ban list for #{targetobj.nick}:"
+      cbans.each { |x|
+        @irc.notice @client_sid, target, "- #{targetobj.nick} is banned from #{x["channel"]} (#{x["ban_mask"]})"
+      }
+      @irc.notice @client_sid, target, "End of ban list for #{targetobj.nick}"
+    else
+      @irc.notice @client_sid, target, "#{targetobj.nick} is not banned from any channels."
+    end
+
+    @irc.notice @client_sid, target, " "
+
+    cmutes = @irc.get_channel_mutes targetobj
+    if cmutes and !cmutes.empty?
+      @irc.notice @client_sid, target, "Mute list for #{targetobj.nick}:"
+      cmutes.each { |x|
+        @irc.notice @client_sid, target, "- #{targetobj.nick} is muted from #{x["channel"]} (#{x["ban_mask"]})"
+      }
+      @irc.notice @client_sid, target, "End of mute list for #{targetobj.nick}"
+    else
+      @irc.notice @client_sid, target, "#{targetobj.nick} is not muted from any channels."
+    end
   end
 
   def handle_kline hash
@@ -474,6 +514,15 @@ class RootservCommands
     @irc.notice @client_sid, target, "Users: #{@irc.get_user_total}"
     @irc.notice @client_sid, target, "Opers: #{@irc.get_oper_total}"
     @irc.notice @client_sid, target, "Services: #{@irc.get_services_total}"
+    @irc.notice @client_sid, target, "Servers: #{@irc.get_server_total}"
+
+    num = `cat /proc/#{Process.pid}/status | grep "Threads"`.strip
+    num = num.split("\t")
+
+    ram = `cat /proc/#{Process.pid}/status | grep "VmSize"`.strip
+    ram = ram.split("\t")
+    @irc.notice @client_sid, target, "Currently using #{num[1]} threads and #{ram[1][0..-3].to_i/1024} MB of memory."
+
     @irc.notice @client_sid, target, " "
     @irc.notice @client_sid, target, "End of stats"
   end
@@ -522,6 +571,7 @@ class RootservCommands
       @irc.notice @client_sid, target, "The following commands are available:"
       @irc.notice @client_sid, target, "[F] ACCESS                      Modifies #{@rs["Nick"]}'s access list"
       @irc.notice @client_sid, target, "[C] CHANINFO <#channel>         Returns information on the channel"
+      @irc.notice @client_sid, target, "[B] CHECKBAN <nick>             Checks a user against banlists"
       @irc.notice @client_sid, target, "[F] FLAGS                       Modifies #{@rs["Nick"]}'s access list"
       @irc.notice @client_sid, target, "[K] KICK <#channel> <nick>      Kicks a user from a channel"
       @irc.notice @client_sid, target, "[K] KILL <nick> [message]       Kills a client"
@@ -553,6 +603,8 @@ class RootservCommands
       handle_mode hash
     when "chaninfo"
       handle_chaninfo hash
+    when "checkban"
+      handle_checkban hash
     when "shutdown"
       handle_shutdown hash
     when "svsnick"
