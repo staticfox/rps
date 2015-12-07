@@ -228,7 +228,7 @@ class IRCLib
   end
 
   def get_uid_object uid
-    return UserStruct.find nick
+    return UserStruct.find uid
   end
 
   def get_nick_object nick
