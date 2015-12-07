@@ -11,20 +11,11 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2015120320152350) do
+ActiveRecord::Schema.define(version: 2015120720150347) do
 
   create_table "bot_channels", force: :cascade do |t|
     t.string  "channel", limit: 50, null: false
     t.integer "options", limit: 4
-  end
-
-  create_table "channels", force: :cascade do |t|
-    t.integer "ctime",       limit: 8,     null: false
-    t.string  "channel",     limit: 50,    null: false
-    t.string  "modes",       limit: 25
-    t.text    "topic",       limit: 65535
-    t.string  "topic_setat", limit: 255
-    t.string  "topic_setby", limit: 255
   end
 
   create_table "limit_serv_channels", force: :cascade do |t|
@@ -48,26 +39,6 @@ ActiveRecord::Schema.define(version: 2015120320152350) do
     t.string  "added_by", limit: 255
     t.integer "added",    limit: 4
     t.integer "modified", limit: 4
-  end
-
-  create_table "user_in_channels", force: :cascade do |t|
-    t.string "channel", limit: 50, null: false
-    t.string "user",    limit: 25, null: false
-    t.string "modes",   limit: 25, null: false
-  end
-
-  create_table "users", force: :cascade do |t|
-    t.text   "nick",     limit: 65535, null: false
-    t.string "ctime",    limit: 15,    null: false
-    t.string "umodes",   limit: 25,    null: false
-    t.string "ident",    limit: 15,    null: false
-    t.string "chost",    limit: 75,    null: false
-    t.string "ip",       limit: 50,    null: false
-    t.string "uid",      limit: 10,    null: false
-    t.string "host",     limit: 100,   null: false
-    t.text   "server",   limit: 65535, null: false
-    t.string "nickserv", limit: 25,    null: false
-    t.string "certfp",   limit: 255
   end
 
 end
