@@ -216,26 +216,26 @@ class RootservCommands
       targetobj = @irc.get_nick_object params[0]
       return @irc.notice @client_sid, target, "Could not find user #{params[0]}" if !targetobj
 
-      if params[1].downcase == targetobj[:nick].downcase
+      if params[1].downcase == targetobj.nick.downcase
         return @irc.notice @client_sid, target, "Their nick is already #{params[0]}"
       end
 
       remote_user = @irc.get_nick_object params[1]
       if remote_user
-        if remote_user[:nick] != remote_user[:uid]
+        if remote_user.nick != remote_user.uid
           @irc.ts6_save @parameters["sid"], remote_user
         else
           us = @irc.get_uid_object(@client_sid)
           if !us
             return sendto_debug "ERROR: Lost our User entry!"
           end
-          @irc.kill us, remote_user[:uid], "Nick collision"
+          @irc.kill us, remote_user.uid, "Nick collision"
         end
       end
 
       @irc.ts6_fnc @parameters["sid"], params[1], targetobj
-      @irc.notice @client_sid, target, "Changed #{targetobj[:nick]}'s nick to #{params[1]}"
-      @irc.wallop @client_sid, "\x02#{@irc.get_nick_from_uid target}\x02 used \x02SVSNICK\x02 on \x02#{targetobj[:nick]}\x02 => \x02#{params[1]}\x02"
+      @irc.notice @client_sid, target, "Changed #{targetobj.nick}'s nick to #{params[1]}"
+      @irc.wallop @client_sid, "\x02#{@irc.get_nick_from_uid target}\x02 used \x02SVSNICK\x02 on \x02#{targetobj.nick}\x02 => \x02#{params[1]}\x02"
     end
   end
 
@@ -259,12 +259,12 @@ class RootservCommands
 
     newhost = params[1]
 
-    if our_server[:server] == targetobj[:server]
+    if our_server.server == targetobj.server
       return @irc.notice @client_sid, target, "No!"
     end
 
     @parameters["ulines"].each { |x|
-      if targetobj[:server].downcase == x["name"].downcase
+      if targetobj.server.name.downcase == x["name"].downcase
         return @irc.notice @client_sid, target, "No!"
       end
     }
@@ -274,9 +274,9 @@ class RootservCommands
       return
     end
 
-    @irc.chghost @parameters["sid"], targetobj[:uid], newhost
-    @irc.notice @client_sid, target, "Changed #{targetobj[:nick]}'s host to #{newhost}"
-    @irc.wallop @client_sid, "\x02#{@irc.get_nick_from_uid target}\x02 used \x02SVSHOST\x02 on \x02#{targetobj[:nick]}\x02 => \x02#{newhost}\x02"
+    @irc.chghost @parameters["sid"], targetobj.uid, newhost
+    @irc.notice @client_sid, target, "Changed #{targetobj.nick}'s host to #{newhost}"
+    @irc.wallop @client_sid, "\x02#{@irc.get_nick_from_uid target}\x02 used \x02SVSHOST\x02 on \x02#{targetobj.nick}\x02 => \x02#{newhost}\x02"
   end
 
   def handle_kill hash
@@ -296,12 +296,12 @@ class RootservCommands
     sourceobj = @irc.get_uid_object @client_sid
     return @irc.notice @client_sid, target, "Could not find user #{params[0]}" if !targetobj
 
-    if our_server[:server] == targetobj[:server]
+    if our_server.server == targetobj.server
       return @irc.notice @client_sid, target, "No!"
     end
 
     @parameters["ulines"].each { |x|
-      if targetobj[:server].downcase == x["name"].downcase
+      if targetobj.server.name.downcase == x["name"].downcase
         return @irc.notice @client_sid, target, "No!"
       end
     }
@@ -312,9 +312,9 @@ class RootservCommands
       killmsg = params[1..-1].join(' ')
     end
 
-    @irc.kill sourceobj, targetobj[:uid], killmsg
-    @irc.notice @client_sid, target, "Killed #{targetobj[:nick]}"
-    @irc.wallop @client_sid, "\x02#{@irc.get_nick_from_uid target}\x02 used \x02KILL\x02 on \x02#{targetobj[:nick]}\x02"
+    @irc.kill sourceobj, targetobj.uid, killmsg
+    @irc.notice @client_sid, target, "Killed #{targetobj.nick}"
+    @irc.wallop @client_sid, "\x02#{@irc.get_nick_from_uid target}\x02 used \x02KILL\x02 on \x02#{targetobj.nick}\x02"
   end
 
   def handle_kick hash
@@ -349,9 +349,9 @@ class RootservCommands
     elsif !userobj
       @irc.notice @client_sid, target, "##{nick} is not on the network"
     else
-      @irc.kick @client_sid, userobj[:uid], channel, kickmsg
+      @irc.kick @client_sid, userobj.uid, channel, kickmsg
       @irc.notice @client_sid, target, "#{nick} has been kicked from #{channel}"
-      @irc.wallop @client_sid, "\x02#{@irc.get_nick_from_uid target}\x02 used \x02KICK\x02 on \x02#{userobj[:nick]}\x02 on \x02#{chanobj[:channel]}\x02"
+      @irc.wallop @client_sid, "\x02#{@irc.get_nick_from_uid target}\x02 used \x02KICK\x02 on \x02#{userobj.nick}\x02 on \x02#{chanobj.name}\x02"
     end
   end
 
@@ -378,9 +378,9 @@ class RootservCommands
     if !chanobj
       @irc.notice @client_sid, target, "##{channel} does not exist"
     else
-      @irc.client_set_mode @client_sid, "#{chanobj.channel} #{modes}"
+      @irc.client_set_mode @client_sid, "#{chanobj.name} #{modes}"
       @irc.notice @client_sid, target, "Set mode #{modes} on #{channel}"
-      @irc.wallop @client_sid, "\x02#{@irc.get_nick_from_uid target}\x02 used \x02MODE\x02 on \x02#{chanobj[:channel]}\x02 (\x02#{modes}\x02)"
+      @irc.wallop @client_sid, "\x02#{@irc.get_nick_from_uid target}\x02 used \x02MODE\x02 on \x02#{chanobj.name}\x02 (\x02#{modes}\x02)"
     end
   end
 

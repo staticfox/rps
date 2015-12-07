@@ -139,12 +139,12 @@ class IRCLib
   end
 
   def ts6_fnc sid, newnick, uobj
-    send_data @name, @sock, ":#{sid} ENCAP #{uobj[:server]} RSFNC #{uobj[:uid]} #{newnick} #{Time.now.to_i} #{uobj[:ctime]}\r\n"
+    send_data @name, @sock, ":#{sid} ENCAP #{uobj.server.name} RSFNC #{uobj.uid} #{newnick} #{Time.now.to_i} #{uobj.ts}\r\n"
   end
 
   def ts6_save sid, uobj
-    send_data @name, @sock, ":#{sid} SAVE #{uobj[:uid]} #{uobj[:ctime]}\r\n"
-    change_nick uobj[:uid], uobj[:uid]
+    send_data @name, @sock, ":#{sid} SAVE #{uobj.uid} #{uobj.ts}\r\n"
+    change_nick uobj.uid, uobj.uid
   end
 
   def server_kill sid, uid, server_name, reason
@@ -153,7 +153,7 @@ class IRCLib
   end
 
   def kill sobj, uid, message
-    send_data @name, @sock, ":#{sobj[:uid]} KILL #{uid} :#{sobj[:host]}!#{sobj[:nick]} (#{message})\r\n"
+    send_data @name, @sock, ":#{sobj.uid} KILL #{uid} :#{sobj.host}!#{sobj.nick} (#{message})\r\n"
     delete_user uid
   end
 
