@@ -39,7 +39,8 @@ class BotWeather
     return array
   end
 
-  def handle_privmsg hash
+  def handle_privmsg hash, flags
+    return if !((flags & Flags::Weather) > 0)
     target = hash["target"]
     target = hash["from"] if hash["target"] == @client_sid
 
@@ -66,14 +67,14 @@ class BotWeather
     @client_sid = "#{@parameters["sid"]}000003"
     @initialized = false
 
-    @e.on_event do |type, hash|
+    @e.on_event do |type, hash, flags|
       if type == "Bot-Chat"
         if !@initialized
           @config = @c.Get
           @irc = IRCLib.new hash["name"], hash["sock"]
           @initialized = true
         end
-        handle_privmsg hash if hash["msgtype"] == "PRIVMSG"
+        handle_privmsg hash, flags if hash["msgtype"] == "PRIVMSG"
       end
     end
   end

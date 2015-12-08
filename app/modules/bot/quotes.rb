@@ -13,7 +13,9 @@ class BotQuotes
     sock.send string, 0
   end
 
-  def handle_privmsg hash
+  def handle_privmsg hash, flags
+    return if (flags & Flags::Quotes) == 0
+
     target = hash["target"]
     target = hash["from"] if target == @client_sid
 
@@ -123,14 +125,14 @@ class BotQuotes
     Quote.establish_connection(@config["connections"]["databases"]["test"])
     Quote.connection.disconnect!
 
-    @e.on_event do |type, hash|
+    @e.on_event do |type, hash, flags|
       if type == "Bot-Chat"
         if !@initialized
           config = @c.Get
           @irc = IRCLib.new hash["name"], hash["sock"]
           @initialized = true
         end
-        handle_privmsg hash if hash["msgtype"] == "PRIVMSG"
+        handle_privmsg hash, flags if hash["msgtype"] == "PRIVMSG"
       end
     end
   end

@@ -39,7 +39,7 @@ class BotG
     return "No Result Found."
   end
 
-  def handle_privmsg hash
+  def handle_privmsg hash, flags
     target = hash["target"]
     target = hash["from"] if target == @client_sid
 
@@ -53,8 +53,10 @@ class BotG
 
     case hash["command"].downcase
     when "!calc"
+      return if !((flags & Flags::Calculator) > 0)
       @irc.privmsg @client_sid, target, "Google Calculator: #{gc(hash["parameters"])}"
     when "!g", "!google"
+      return if !((flags & Flags::Google) > 0)
       @irc.privmsg @client_sid, target, "Google Search: #{gs(hash["parameters"])}"
     end
   end
@@ -70,14 +72,14 @@ class BotG
     @client_sid = "#{@parameters["sid"]}000003"
     @initialized = false
 
-    @e.on_event do |type, hash|
+    @e.on_event do |type, hash, flags|
       if type == "Bot-Chat"
         if !@initialized
           @config = @c.Get
           @irc = IRCLib.new hash["name"], hash["sock"]
           @initialized = true
         end
-        handle_privmsg hash if hash["msgtype"] == "PRIVMSG"
+        handle_privmsg hash, flags if hash["msgtype"] == "PRIVMSG"
       end
     end
   end
