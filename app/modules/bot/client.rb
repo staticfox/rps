@@ -279,7 +279,11 @@ class BotClient
           me_user_notice target, "for channel that changes the way #{@bot["nick"]} interacts"
           me_user_notice target, "with your channel."
           me_user_notice target, " "
-          me_user_notice target, "The following subcommands are available:"
+          me_user_notice target, "The following options are available:"
+          me_user_notice target, "\x02Google\x02"
+          me_user_notice target, "\x02Quotes\x02"
+          me_user_notice target, "\x02Calculator\x02"
+          me_user_notice target, "\x02Weather\x02"
           me_user_notice target, " "
           me_user_notice target, "Syntax: SET <#channel> <option> <on|off>"
           me_user_notice target, " "
@@ -292,6 +296,7 @@ class BotClient
           me_user_notice target, "No help available for \x02#{subcommands[0].downcase}\x02."
           me_user_notice target, "Help dialogs are still a work in progress."
           me_user_notice target, "If you're having trouble or you need additional help, you may want to join the help channel #help."
+          me_user_notice target, "***** \x02End of Help\x02 *****"
           return
         end
       end
