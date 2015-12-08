@@ -191,20 +191,14 @@ class BotClient
     conf = BotChannel.find_by(channel: channel.downcase)
     has_flag = (flag & current_flags > 0)
 
-    if has_flag
-      if to_set
-        take_action = false
-      else
-        newflags = current_flags - flag
-        take_action = true
-      end
-    else
-      if to_set
-        newflags = current_flags + flag
-        take_action = true
-      else
-        take_action = false
-      end
+    take_action = false
+
+    if has_flag && !to_set
+      newflags = current_flags - flag
+      take_action = true
+    elsif !has_flag and to_set
+      newflags = current_flags + flag
+      take_action = true
     end
 
     if take_action
