@@ -319,9 +319,11 @@ class IRCMsg
 
     if data.count == 5
       u = UserStruct.find data[4][1..-1]
+      return if !u
       u.nickserv = '*'
     else
       u = UserStruct.find data[4]
+      return if !u
       u.nickserv = data[5][1..-1]
     end
   end
