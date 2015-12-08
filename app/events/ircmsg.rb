@@ -194,6 +194,8 @@ class IRCMsg
     nick = data.split(' ')[2]
 
     u = UserStruct.find nick
+    u.channels.each { |c| c.del_user u }
+    u.part_all
     u.server.usercount -= 1
     u.destroy if u
     @e.Run "IRCClientQuit", name, sock, data
@@ -541,8 +543,8 @@ class IRCMsg
         handle_squit   name, sock, data if opt[0] == "SQUIT"
         handle_bmask   name, sock, data if opt[1] == "BMASK"
         handle_server2 name, sock, data if opt[1] == "SERVER"
-        #handle_kill    name, sock, data if opt[1] == "KILL" # Useless?
-        #handle_save    name, sock, data if opt[1] == "SAVE" # Useless?
+        handle_kill    name, sock, data if opt[1] == "KILL"
+        handle_save    name, sock, data if opt[1] == "SAVE"
         handle_chat    name, sock, data if opt[1] == "PRIVMSG" or opt[1] == "NOTICE"
         handle_sid     name, sock, data if opt[1] == "SID"
         handle_euid    name, sock, data if opt[1] == "EUID"
