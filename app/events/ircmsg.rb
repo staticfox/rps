@@ -84,26 +84,14 @@ class IRCMsg
     data[5 + offset..-1].each do |user|
       # First number is start of UID because of SID definition
       idx = 0
-      owner = admin = op = halfop = voice = false
+      pfx = ''
       user.each_char do |c|
         case c
         when '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'
           break
-        when '~'
-          owner = true
-          idx += 1
-        when '&'
-          admin = true
-          idx += 1
-        when '@'
-          op = true
-          idx += 1
-        when '%'
-          halfop = true
-          idx += 1
-        when '+'
-          voice = true
-          idx += 1
+        when '~', '&', '@', '%', '+'
+          pfx += c
+          idx +=1
         else
           idx += 1
         end
@@ -112,11 +100,11 @@ class IRCMsg
         u = UserStruct.find_by_uid(user[idx..-1])
         c.add_user u
         u.join c
-        c.add_access '~', u if owner
-        c.add_access '&', u if admin
-        c.add_access '@', u if op
-        c.add_access '%', u if halfop
-        c.add_access '+', u if voice
+
+        if !pfx.empty?
+          pfx.split(//).each { |p| c.add_access p, u }
+        end
+
       rescue NoMethodError => e
         @e.Run "RPSError", "Error getting UID (#{user[(idx - 1)..-1]} for idx=#{idx} and user=#{user}): #{e.inspect}"
       end
@@ -393,53 +381,9 @@ class IRCMsg
       if ['q','a','o','h','v'].include? m
         u = UserStruct.find data[i]
         if addnow
-          case m
-          when 'q'
-            c.add_access '~', u
-            i+=1
-            next
-          when 'a'
-            c.add_access '&', u
-            i+=1
-            next
-          when 'o'
-            c.add_access '@', u
-            i+=1
-            next
-          when 'h'
-            c.add_access '%', u
-            i+=1
-            next
-          when 'v'
-            c.add_access '+', u
-            i+=1
-            next
-          end
-        end
-
-        if !addnow
-          case m
-          when 'q'
-            c.del_access '~', u
-            i+=1
-            next
-          when 'a'
-            c.del_access '&', u
-            i+=1
-            next
-          when 'o'
-            c.del_access '@', u
-            i+=1
-            next
-          when 'h'
-            c.del_access '%', u
-            i+=1
-            next
-          when 'v'
-            c.del_access '+', u
-            i+=1
-            next
-          end
+          c.add_access m, u
+        else
+          c.del_access m, u
         end
         i+=1
       end
@@ -477,14 +421,13 @@ class IRCMsg
   end
 
   def parse_modestr c, modes
-    adding = if modes[0][0] == '+'
-               true
-             elsif modes[0][0] == '-'
-               false
-             else
-               nil
-             end
-    return nil if adding == nil
+    adding = nil
+    if modes[0][0] == '+'
+      adding = true
+    elsif modes[0][0] == '-'
+      adding = false
+    end
+    return if adding.nil?
 
     offset = 0
 

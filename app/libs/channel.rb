@@ -127,15 +127,15 @@ class ChannelStruct
 
   def add_access level, user
     case level
-    when '~'
+    when '~', 'q'
       access = @owners
-    when '&'
+    when '&', 'a'
       access = @admins
-    when '@'
+    when '@', 'o'
       access = @ops
-    when '%'
+    when '%', 'h'
       access = @halfops
-    when '+'
+    when '+', 'v'
       access = @voiced
     end
 
@@ -148,18 +148,17 @@ class ChannelStruct
 
   def del_access level, user
     case level
-    when '~'
+    when '~', 'q'
       access = @owners
-    when '&'
+    when '&', 'a'
       access = @admins
-    when '@'
+    when '@', 'o'
       access = @ops
-    when '%'
+    when '%', 'h'
       access = @halfops
-    when '+'
+    when '+', 'v'
       access = @voiced
     end
-
 
     if user.is_a? UserStruct
       access.delete user
