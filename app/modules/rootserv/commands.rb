@@ -438,7 +438,7 @@ class RootservCommands
     @irc.notice @client_sid, target, "Mode: #{chanhash.modes}"
     @irc.notice @client_sid, target, "Topic: #{chanhash.topic_name}"
     @irc.notice @client_sid, target, "Topic set by #{chanhash.topic_set_by}" if !chanhash.topic_set_by.empty?
-    @irc.notice @client_sid, target, "Topic set on #{DateTime.strptime(chanhash.topic_set_at.to_s, '%s').in_time_zone('America/New_York').strftime("%A %B %d %Y @ %l:%M %P %z")} (#{ChronicDuration.output(Time.new.to_i - chanhash.topic_set_at.to_i)} ago)" if chanhash.topic_set_at
+    @irc.notice @client_sid, target, "Topic set on #{DateTime.strptime(chanhash.topic_set_at.to_s, '%s').in_time_zone('America/New_York').strftime("%A %B %d %Y @ %l:%M %P %z")} (#{ChronicDuration.output(Time.new.to_i - chanhash.topic_set_at.to_i)} ago)" if !chanhash.topic_set_at.to_s.empty?
     @irc.notice @client_sid, target, "Users:"
     if !usersarray.empty?
       usersarray.each { |x| @irc.notice @client_sid, target, "- #{x}" }
