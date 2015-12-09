@@ -498,7 +498,7 @@ class IRCMsg
         offset += 1
       when 'P'
         if adding
-          c.modes += char
+          c.modes += char if !c.modes.include? char
         else
           c.modes.tr char, ''
         end
@@ -506,7 +506,7 @@ class IRCMsg
         c.destroy if !adding && c.get_user_count == 0
       else
         if adding
-          c.modes += char
+          c.modes += char if !c.modes.include? char
         else
           c.modes.tr(char, '')
         end
