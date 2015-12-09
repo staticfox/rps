@@ -118,7 +118,7 @@ class IRCMsg
         c.add_access '%', u if halfop
         c.add_access '+', u if voice
       rescue NoMethodError => e
-        puts "Error getting UID (#{user[(idx - 1)..-1]} for idx=#{idx} and user=#{user}): #{e.inspect}"
+        @e.Run "RPSError", "Error getting UID (#{user[(idx - 1)..-1]} for idx=#{idx} and user=#{user}): #{e.inspect}"
       end
     end
     @e.Run "IRCChanSJoin", name, sock, data
@@ -216,18 +216,26 @@ class IRCMsg
     topic = data[5..-1].join(' ')[1..-1]
 
     c = ChannelStruct.find_by_name data[2]
-    return if !c
+
+    if !c
+      @e.Run "RPSError", "Found TB for unknown channel #{data[3]}"
+      return
+    end
+
     c.topic_name   = topic
     c.topic_set_at = data[3]
     c.topic_set_by = data[4]
   end
 
-  # TODO better error handler
   def handle_bmask name, sock, data
     data = data.split(' ')
     c = ChannelStruct.find_by_name data[3]
 
-    return if !c
+    if !c
+      @e.Run "RPSError", "Found BMASK for unknown channel #{data[3]}"
+      return
+    end
+
     ts = data[2].to_i
 
     return if c.ts < ts
@@ -304,7 +312,12 @@ class IRCMsg
     data = data.split(' ')
 
     u = UserStruct.find data[0][1..-1]
-    return if !u
+
+    if !u
+      @e.Run "RPSError", "Received NICK for unknown UID #{data[0][1..-1]}"
+      return
+    end
+
     u.nick = data[2]
     u.ts   = data[3][1..-1].to_i
   end
@@ -316,6 +329,10 @@ class IRCMsg
     u.chost = data[3]
   end
 
+  # Sometimes services can lag and log users
+  # in after the user netsplits. It's rare but
+  # it has happened. Found out the hard way.
+  # Trust me.
   def handle_su name, sock, data
     data = data.split(' ')
 
@@ -342,7 +359,11 @@ class IRCMsg
 
     c = ChannelStruct.find_by_name data[3]
 
-    return nil if c == nil
+    if !c
+      @e.Run "RPSError", "Received TMODE for unknown channel #{data[3]}"
+      return
+    end
+
     return if data[2].to_i > c.ts
 
     parse_modestr c, data[4..-1]

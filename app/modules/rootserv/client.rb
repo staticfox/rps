@@ -119,6 +119,10 @@ class RootservClient
     end
 
     @e.on_event do |event, message|
+      sendto_not_so_important_debug message if event == "RPSError"
+    end
+
+    @e.on_event do |event, message|
       sendto_debug message if event == "DebugRootServ"
     end
   end
