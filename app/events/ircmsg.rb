@@ -40,7 +40,7 @@ class IRCMsg
     our_sid = data[3][1..-1]
 
     if our_sid == @params["sid"]
-      send_data name, sock, ":#{our_sid} PONG #{@params["server_name"]} :#{remote_sid}"
+      send_data name, sock, ":#{our_sid} PONG #{@params["server_name"]} :#{remote_sid}\r\n"
     end
   end
 

@@ -22,7 +22,7 @@ class IRCNumeric
           config = c.Get
           config = config["connections"]["clients"][hash["name"]]
 
-          send_data hash["name"], hash["sock"], "PRIVMSG #{config["authserv"]} :#{config["authcommand"]} #{config["authname"]} #{config["authpass"]}" if !config["authserv"].nil? && !config["authcommand"].nil? && !config["authpass"].nil?
+          send_data hash["name"], hash["sock"], "PRIVMSG #{config["authserv"]} :#{config["authcommand"]} #{config["authname"]} #{config["authpass"]}\r\n" if !config["authserv"].nil? && !config["authcommand"].nil? && !config["authpass"].nil?
 
           sleep 2
 

@@ -449,6 +449,86 @@ class RootservCommands
     @irc.notice @client_sid, target, "End of chaninfo"
   end
 
+  def handle_banall hash
+    target = hash["from"]
+    if !has_flag(@irc.get_account_from_uid(target), 'AFZ')
+      @irc.notice @client_sid, target, "Permission denied."
+      sendto_debug "Denied access to #{@irc.get_nick_from_uid target} [#{__method__.to_s}]"
+      return
+    end
+
+    return @irc.notice @client_sid, target, "Channel not specified" if hash["parameters"].empty?
+
+    chan = hash["parameters"].split(' ')[0]
+    chanhash = @irc.get_chan_info chan
+    return @irc.notice @client_sid, target, "Could not find channel #{chan}" if !chanhash
+
+    usersarray = @irc.get_user_objects_in_channel chan
+    @irc.client_join_channel @client_sid, chanhash.name
+    @irc.client_set_mode @client_sid, "#{chanhash.name} +o #{@rs["nick"]}"
+    @irc.client_set_mode @client_sid, "#{chanhash.name} +b *!*@*"
+    usersarray.each { |x|
+      next if x.isoper
+      @irc.kick @client_sid, x.uid, chanhash.name, "KBA Requested"
+    }
+    @irc.notice @client_sid, target, "Cleared users from #{chanhash.name}."
+    @irc.wallop @client_sid, "\x02#{@irc.get_nick_from_uid target}\x02 used \x02BANALL\x02 on \x02#{chanhash.name}\x02"
+  end
+
+  def handle_join hash
+    target = hash["from"]
+    if !has_flag(@irc.get_account_from_uid(target), 'AFZ')
+      @irc.notice @client_sid, target, "Permission denied."
+      sendto_debug "Denied access to #{@irc.get_nick_from_uid target} [#{__method__.to_s}]"
+      return
+    end
+
+    return @irc.notice @client_sid, target, "Channel not specified" if hash["parameters"].empty?
+
+    channel = hash["parameters"].split(' ')[0]
+
+    chanobj = @irc.get_chan_info channel
+
+    if !chanobj
+      @irc.notice @client_sid, target, "##{channel} does not exist"
+    else
+      if @irc.is_user_in_channel @client_sid, chanobj.name
+        @irc.notice @client_sid, target, "I am already in ##{chanobj.name}"
+      else
+        @irc.client_join_channel @client_sid, chanobj.name
+        @irc.client_set_mode @client_sid, "#{chanobj.name} +o #{@rs["nick"]}"
+        @irc.notice @client_sid, target, "I have joined #{chanobj.name}."
+      end
+    end
+  end
+
+  def handle_part hash
+    target = hash["from"]
+    if !has_flag(@irc.get_account_from_uid(target), 'AFZ')
+      @irc.notice @client_sid, target, "Permission denied."
+      sendto_debug "Denied access to #{@irc.get_nick_from_uid target} [#{__method__.to_s}]"
+      return
+    end
+
+    return @irc.notice @client_sid, target, "Channel not specified" if hash["parameters"].empty?
+
+    channel = hash["parameters"].split(' ')[0]
+
+    chanobj = @irc.get_chan_info channel
+
+    if !chanobj
+      @irc.notice @client_sid, target, "##{channel} does not exist"
+    else
+      if !@irc.is_user_in_channel @client_sid, chanobj.name
+        @irc.notice @client_sid, targetobj, "I am not in #{chanobj.name}"
+      else
+        @irc.client_part_channel @client_sid, chanobj.name
+        @irc.notice @client_sid, target, "I have left #{chanobj.name}."
+      end
+    end
+  end
+
+
   # TODO cleanup
   def handle_checkban hash
     target = hash["from"]
@@ -569,12 +649,15 @@ class RootservCommands
       @irc.notice @client_sid, target, "For more information on a command, type \x02/msg #{@rs["nick"]} help <command>\x02"
       @irc.notice @client_sid, target, "The following commands are available:"
       @irc.notice @client_sid, target, "[F] ACCESS                      Modifies #{@rs["Nick"]}'s access list"
+      @irc.notice @client_sid, target, "[A] BANALL <#channel>           Kicks and bans everyone from the channel"
       @irc.notice @client_sid, target, "[C] CHANINFO <#channel>         Returns information on the channel"
       @irc.notice @client_sid, target, "[B] CHECKBAN <nick>             Checks a user against banlists"
       @irc.notice @client_sid, target, "[F] FLAGS                       Modifies #{@rs["Nick"]}'s access list"
+      @irc.notice @client_sid, target, "[A] JOIN <#channel>             Causes #{@rs["nick"]} to join a channel"
       @irc.notice @client_sid, target, "[K] KICK <#channel> <nick>      Kicks a user from a channel"
       @irc.notice @client_sid, target, "[K] KILL <nick> [message]       Kills a client"
       @irc.notice @client_sid, target, "[M] MODE <#channel>             Sets modes on a channel"
+      @irc.notice @client_sid, target, "[A] PART <#channel>             Causes #{@rs["nick"]} to part from a channel"
       @irc.notice @client_sid, target, "[S] SHUTDOWN                    Shuts down RPS" # Move to ModuleServ?
       @irc.notice @client_sid, target, "[V] SVSHOST <nick> <newhost>    Changes nick's hostname"
       @irc.notice @client_sid, target, "[N] SVSNICK <nick> <newnick>    Changes nick's name to newnick"
@@ -602,6 +685,8 @@ class RootservCommands
       handle_mode hash
     when "chaninfo"
       handle_chaninfo hash
+    when "banall"
+      handle_banall hash
     when "checkban"
       handle_checkban hash
     when "shutdown"
@@ -610,10 +695,14 @@ class RootservCommands
       handle_svsnick hash
     when "svshost"
       handle_svshost hash
+    when "join"
+      handle_join hash
     when "kick"
       handle_kick hash
     when "kill"
       handle_kill hash
+    when "part"
+      handle_part hash
     when "whois"
       handle_whois hash
     when "uid"

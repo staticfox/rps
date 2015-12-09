@@ -163,7 +163,7 @@ class IRCLib
   end
 
   def nick sid, newnick
-    send_data @name, @sock, ":#{sid} NICK #{newnick} :#{Time.new.to_i}"
+    send_data @name, @sock, ":#{sid} NICK #{newnick} :#{Time.new.to_i}\r\n"
     change_nick newnick, sid
   end
 
@@ -304,6 +304,13 @@ class IRCLib
 
   def get_chan_info channel
     return ChannelStruct.find_by_name channel
+  end
+
+  def get_user_objects_in_channel channel
+    c = ChannelStruct.find_by_name channel
+    users = []
+    c.get_users.each { |u| users << u }
+    return users
   end
 
   def get_users_in_channel channel
