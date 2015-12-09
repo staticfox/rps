@@ -437,25 +437,11 @@ class IRCMsg
         adding = true
       when '-'
         adding = false
-      when 'b'
+      when 'b', 'e', 'x'
         if adding
-          c.add_ban modes[1 + offset], 'b'
+          c.add_ban modes[1 + offset], char
         else
-          c.del_ban modes[1 + offset], 'b'
-        end
-        offset += 1
-      when 'e'
-        if adding
-          c.add_ban modes[1 + offset], 'e'
-        else
-          c.del_ban modes[1 + offset], 'e'
-        end
-        offset += 1
-      when 'x'
-        if adding
-          c.add_ban modes[1 + offset], 'x'
-        else
-          c.del_ban modes[1 + offset], 'x'
+          c.del_ban modes[1 + offset], char
         end
         offset += 1
       when 'k', 'l', 'I', 'f', 'j', 'q', 'a', 'o', 'h', 'v'
