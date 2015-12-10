@@ -33,11 +33,10 @@ class IRCMsg
   end
 
   def handle_rping name, sock, line
-    #:41X PING Terminus.GeeksIRC.net :30X
-    data = line.split(' ')
-    remote_sid = data[0][1..-1]
+    data        = line.split(' ')
+    remote_sid  = data[0][1..-1]
     remote_name = data[2]
-    our_sid = data[3][1..-1]
+    our_sid     = data[3][1..-1]
 
     if our_sid == @params["sid"]
       send_data name, sock, ":#{our_sid} PONG #{@params["server_name"]} :#{remote_sid}\r\n"
@@ -54,6 +53,14 @@ class IRCMsg
     data = data.split(' ')
 
     s = Server.find_by_sid data[0][1..-1]
+
+    exists = UserStruct.find data[2]
+
+    if exists
+      @e.Run "RPSError", "Received EUID for an already existing nick #{data[2]}"
+      return
+    end
+
     u = UserStruct.new(s, data[9], data[2], data[6], data[7], data[10], data[8], data[4], data[5][1..-1], data[12..-1].join(' ')[1..-1])
     u.nickserv = data[11]
     u.modes = data[5].tr '+', ''
@@ -173,7 +180,10 @@ class IRCMsg
     split_sid = data[1]
     split_server = Server.find_by_sid split_sid
 
-    return puts "Unknown server split" if !split_server
+    if !split_server
+      @e.Run "RPSError", "Received SQUIT for unknown SID #{split_sid}"
+      return
+    end
 
     handle_split split_server
   end
@@ -247,7 +257,7 @@ class IRCMsg
 
   def handle_quit name, sock, data
     data = data.split(' ')
-    nick = uid = data[0][1..-1]
+    uid  = data[0][1..-1]
 
     u = UserStruct.find_by_uid uid
     u.channels.each { |c| c.del_user u }
@@ -262,13 +272,17 @@ class IRCMsg
     data = data.split(' ')
 
     u = UserStruct.find data[0][1..-1]
-    return if !u
+
+    if !u
+      @e.Run "RPSError", "Received JOIN for unknown UID #{data[0][1..-1]}"
+      return
+    end
 
     if data[2] == '0'
       u.channels.each { |c| c.del_user u }
       u.part_all
     else
-      c = ChannelStruct.find_by_name data[3]
+      c   = ChannelStruct.find_by_name data[3]
       c ||= ChannelStruct.new data[3], data[1]
       c.add_user u
       u.join c
@@ -363,22 +377,14 @@ class IRCMsg
     # Go through each change
     data[4].split(//).each { |m|
       case m
-      when '+'
-        addnow = true
-        next
-      when '-'
-        addnow = false
-        next
+      when '+' then addnow = true
+      when '-' then addnow = false
       when 'f','j','k','l'
         i+=1 if addnow
-        next
       when 'b','x','e','I'
         i+=1
-        next
-      end
-
       # Channel operator status changes
-      if ['q','a','o','h','v'].include? m
+      when 'q','a','o','h','v'
         u = UserStruct.find data[i]
         if addnow
           c.add_access m, u
@@ -433,10 +439,8 @@ class IRCMsg
 
     modes[0].each_char do |char|
       case char
-      when '+'
-        adding = true
-      when '-'
-        adding = false
+      when '+' then adding = true
+      when '-' then adding = false
       when 'b', 'e', 'x'
         if adding
           c.add_ban modes[1 + offset], char
