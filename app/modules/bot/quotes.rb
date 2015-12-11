@@ -27,7 +27,6 @@ class BotQuotes
 
       case cp[0].downcase
       when "add"
-        (@irc.privmsg @client_sid, target, "You need to be a halfop or higher to add quotes into the database."; return) if !@irc.is_chan_founder(target, hash["from"]) and !@irc.is_chan_admin(target, hash["from"]) and !@irc.is_chan_op(target, hash["from"]) and !@irc.is_chan_halfop(target, hash["from"])
         Quote.establish_connection(@config["connections"]["databases"]["test"])
         quote         = Quote.new
         quote.channel = target
@@ -39,7 +38,10 @@ class BotQuotes
         @irc.privmsg @client_sid, target, "[QUOTE] Saved quote ##{quote.id}!"
 
       when "del"
-        (@irc.privmsg @client_sid, target, "You need to be a founder remove quotes from the database."; return) if !@irc.is_chan_founder(target, hash["from"])
+        if !@irc.is_chan_founder(target, hash["from"]) and !@irc.is_chan_admin(target, hash["from"]) and !@irc.is_chan_op(target, hash["from"])
+          @irc.notice @client_sid, hash["from"], "You need at least +o remove quotes from the database."
+          return
+        end
         Quote.establish_connection(@config["connections"]["databases"]["test"])
         query = Quote.where(id: cp[1], channel: target)
 
