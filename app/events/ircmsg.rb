@@ -202,7 +202,7 @@ class IRCMsg
   def handle_save name, sock, data
     uid = data.split(' ')[2]
     u = UserStruct.find uid
-    uid.nick = uid
+    u.nick = uid
   end
 
   def handle_tb name, sock, data
