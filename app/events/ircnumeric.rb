@@ -18,7 +18,7 @@ class IRCNumeric
     @d = d
     @e.on_event do |type, hash|
       if type == "IRCNumeric"
-        if hash["numeric"] == 376 || hash["numeric"] == "396"
+        if hash["numeric"].to_i == 376 || hash["numeric"].to_i == 396
           config = c.Get
           config = config["connections"]["clients"][hash["name"]]
 
