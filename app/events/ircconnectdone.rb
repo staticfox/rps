@@ -8,7 +8,6 @@ class IRCConnectDone
 
   def init e, m, c, d
     @e = e
-    @m = m
     @c = c
     @d = d
 
