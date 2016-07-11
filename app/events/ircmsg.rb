@@ -52,7 +52,7 @@ class IRCMsg
     return if data.include?("ENCAP * GCAP :") or data.include?(" ENCAP ")
     data = data.split(' ')
 
-    a = Server.find_by_sid data[0][1..-1]
+    s = Server.find_by_sid data[0][1..-1]
 
     exists = UserStruct.find data[2]
 
