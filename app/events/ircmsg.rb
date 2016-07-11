@@ -48,6 +48,26 @@ class IRCMsg
     @e.Run "IRCNumeric", hash
   end
 
+  def handle_uid name, sock, data
+    return if data.include?("ENCAP * GCAP :") or data.include?(" ENCAP ")
+    data = data.split(' ')
+
+    a = Server.find_by_sid data[0][1..-1]
+
+    exists = UserStruct.find data[2]
+
+    if exists
+      @e.Run "RPSError", "Received UID for an already existing nick #{data[2]}"
+      return
+    end
+
+    u = UserStruct.new(s, data[9], data[2], data[6], data[7], data[8], data[8], data[4], data[5], data[10..-1].join(' ')[1..-1])
+
+    u.modes = data[5].tr '+', ''
+    s.usercount += 1
+    @e.Run "EUID", data[2], s.sid
+  end
+
   def handle_euid name, sock, data
     return if data.include?("ENCAP * GCAP :") or data.include?(" ENCAP ")
     data = data.split(' ')
@@ -501,6 +521,7 @@ class IRCMsg
         handle_save    name, sock, data if opt[1] == "SAVE"
         handle_chat    name, sock, data if opt[1] == "PRIVMSG" or opt[1] == "NOTICE"
         handle_sid     name, sock, data if opt[1] == "SID"
+        handle_uid     name, sock, data if opt[1] == "UID"
         handle_euid    name, sock, data if opt[1] == "EUID"
         handle_sjoin   name, sock, data if opt[1] == "SJOIN"
         handle_quit    name, sock, data if opt[1] == "QUIT"
