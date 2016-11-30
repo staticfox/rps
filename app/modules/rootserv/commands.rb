@@ -331,6 +331,7 @@ class RootservCommands
 
     if params.count < 2
       @irc.notice @client_sid, target, "Need more parameters"
+      return
     end
     channel = params[0]
     nick    = params[1]
